@@ -9,6 +9,15 @@ export const setItem = async (key: string, value: string) => {
   }
 };
 
+//set the item in async storage
+export const setToken = async (key: string, value: string) => {
+  try {
+    await AsyncStorage.setItem(key, value);
+  } catch (err) {
+    console.log('Error occured while setting item in async storage');
+  }
+};
+
 //get the item from async storage
 export const getItem = async (key: string) => {
   try {

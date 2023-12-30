@@ -1,5 +1,5 @@
 import {View, Text, TouchableOpacity, TextInput, Image} from 'react-native';
-import {removeItem} from '../../utils/asyncStorage';
+import {removeItem, setToken} from '../../utils/asyncStorage';
 import {
   responsiveFontSize,
   responsiveHeight,
@@ -15,6 +15,8 @@ import {LoginSignupStore} from './helper/LoginSignupStore';
 import {useState} from 'react';
 import {ErrorToast} from '../../components/ErrorToast';
 import {SuccessToast} from '../../components/SuccessToast';
+import {useUserContext} from '../../contexts/UserContext';
+import {useGlobalStore} from '../../global/store';
 
 interface LoginScreenProps {
   navigation: StackNavigationProp<RootStackParamsList>;
@@ -38,12 +40,19 @@ const validationSchema = Yup.object().shape({
 });
 
 const Login = ({navigation}: LoginScreenProps) => {
+  // global store state
+  const setUser = useGlobalStore((state: any) => state.setUser);
+
   //  state
   const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
 
   const removeHandler = async () => {
     await removeItem('onboarding');
   };
+
+  //context
+  const {setCurrentUser} = useUserContext();
+  const {currentUser} = useUserContext();
 
   // login handler
   const loginHandlerFunction = async (values: LoginDetails) => {
@@ -52,7 +61,15 @@ const Login = ({navigation}: LoginScreenProps) => {
       const response = await (
         LoginSignupStore.getState() as LoginSignupStoreState
       ).loginUser(values);
+      setCurrentUser(response.token);
+      setUser(response.user);
       SuccessToast(response.message);
+      response.user.role === 'job_seeker' && navigation.navigate('Job_Seeker');
+      response.user.role === 'job_provider' &&
+        navigation.navigate('Job_Provider');
+
+      // setting the token in async storage
+      setToken('currentUser', response.token);
     } catch (error: any) {
       const errorMessage = error
         .toString()

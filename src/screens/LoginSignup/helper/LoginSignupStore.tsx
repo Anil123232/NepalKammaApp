@@ -53,7 +53,6 @@ export const LoginSignupStore = create(set => ({
     try {
       const response = await axios_no_auth.post('/user/login', data);
       if (response.data.status === 'success') {
-        console.log(response.data);
         return response.data;
       }
       return [];
