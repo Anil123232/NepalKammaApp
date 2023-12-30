@@ -40,7 +40,7 @@ function App(): JSX.Element {
     const fetchUser = async () => {
       const storedCurrentUser = await AsyncStorage.getItem('currentUser');
       setCurrentUser(storedCurrentUser);
-      setLoading(false); 
+      setLoading(false);
     };
 
     fetchUser();
@@ -55,7 +55,7 @@ function App(): JSX.Element {
       setIsOnboarding(true);
     }
     // can remove it
-    setLoading(false);
+    // setLoading(false);
   };
 
   if (isOnboarding === null) {

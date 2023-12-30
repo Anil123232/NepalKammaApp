@@ -1,24 +1,47 @@
 import {View, Text} from 'react-native';
 import React, {useEffect} from 'react';
 import {useGlobalStore} from '../global/store';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {StackNavigationProp} from '@react-navigation/stack';
+import {RootStackParamsList} from '../../App';
 
-const MainHome = () => {
-  const user = useGlobalStore((state: any) => state.user);
-  const checkAuth = useGlobalStore((state: any) => state.checkAuth);
+interface mainHomeStoreState {
+  checkAuth: () => Promise<any>;
+}
 
+interface userStateProps {
+  user: any;
+}
+
+interface MainHomeScreenProps {
+  navigation: StackNavigationProp<RootStackParamsList>;
+}
+
+const MainHome = ({navigation}: MainHomeScreenProps) => {
   useEffect(() => {
-    const token = AsyncStorage.getItem('currentUser');
-    console.log(token);
+    const checkAuthentication = async () => {
+      const response = await (
+        useGlobalStore.getState() as mainHomeStoreState
+      ).checkAuth();
 
-    checkAuth().then((res: any) => {
-      console.log(res);
-    });
-  }, [checkAuth]);
+      // if response is true
+      if (response) {
+        const getUser = (useGlobalStore.getState() as userStateProps).user;
+        // if user is job seeker
+        getUser &&
+          getUser.role === 'job_seeker' &&
+          navigation.navigate('Job_Seeker');
+        // if user is job provider
+        getUser &&
+          getUser.role === 'job_provider' &&
+          navigation.navigate('Job_Provider');
+      }
+    };
+    checkAuthentication();
+  }, []);
 
   return (
     <View>
-      <Text>MainHome</Text>
+      <Text className="text-black">Loading....</Text>
     </View>
   );
 };

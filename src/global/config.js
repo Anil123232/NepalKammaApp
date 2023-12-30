@@ -12,6 +12,20 @@ export const axios_auth = axios.create({
   },
 });
 
+// auth interceptors for axios
+axios_auth.interceptors.request.use(
+  async config => {
+    const token = await AsyncStorage.getItem('currentUser');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  error => {
+    return Promise.reject(error);
+  },
+);
+
 export const axios_no_auth = axios.create({
   baseURL: API_URL,
   // withCredentials: true,

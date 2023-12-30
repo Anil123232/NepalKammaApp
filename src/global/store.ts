@@ -6,7 +6,6 @@ export const useGlobalStore = create(set => ({
   checkAuth: async () => {
     try {
       const res = await axios_auth.get('auth/check-auth');
-      console.log('this is response', res);
       if (res.data?.status === 'success') {
         set(() => ({user: res?.data?.user}));
         return true;
