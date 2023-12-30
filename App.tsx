@@ -13,7 +13,7 @@ export type RootStackParamsList = {
   Onboarding: undefined;
   Login: undefined;
   Signup: undefined;
-  OTP: {id: string; email: string, timer: string};
+  OTP: {id: string; email: string; timer: string};
 };
 
 const stack = createNativeStackNavigator();
@@ -40,67 +40,36 @@ function App(): JSX.Element {
     return <Text>Loading.....</Text>;
   }
 
-  if (isOnboarding) {
-    return (
-      <>
-        <NavigationContainer>
-          <stack.Navigator initialRouteName="Onboarding">
-            <stack.Screen
-              name="Onboarding"
-              component={OnboardingScreen}
-              options={{headerShown: false}}
-            />
-            <stack.Screen
-              name="Login"
-              component={Login}
-              options={{headerShown: false}}
-            />
-            <stack.Screen
-              name="Signup"
-              component={Signup}
-              options={{headerShown: false}}
-            />
-            <stack.Screen
-              name="OTP"
-              component={OtpScreen}
-              options={{headerShown: false}}
-            />
-          </stack.Navigator>
-        </NavigationContainer>
-        <Toast />
-      </>
-    );
-  } else {
-    return (
-      <>
-        <NavigationContainer>
-          <stack.Navigator initialRouteName="Login">
-            <stack.Screen
-              name="Onboarding"
-              component={OnboardingScreen}
-              options={{headerShown: false}}
-            />
-            <stack.Screen
-              name="Login"
-              component={Login}
-              options={{headerShown: false}}
-            />
-            <stack.Screen
-              name="Signup"
-              component={Signup}
-              options={{headerShown: false}}
-            />
-            <stack.Screen
-              name="OTP"
-              component={OtpScreen}
-              options={{headerShown: false}}
-            />
-          </stack.Navigator>
-        </NavigationContainer>
-        <Toast />
-      </>
-    );
-  }
+  return (
+    <>
+      <NavigationContainer>
+        <stack.Navigator
+          initialRouteName={isOnboarding ? 'Onboarding' : 'Login'}>
+          <stack.Screen
+            name="Onboarding"
+            component={OnboardingScreen}
+            options={{headerShown: false}}
+          />
+          <stack.Screen
+            name="Login"
+            component={Login}
+            options={{headerShown: false}}
+          />
+          <stack.Screen
+            name="Signup"
+            component={Signup}
+            options={{headerShown: false}}
+          />
+          <stack.Screen
+            name="OTP"
+            component={OtpScreen}
+            options={{headerShown: false}}
+          />
+        </stack.Navigator>
+      </NavigationContainer>
+      <Toast />
+    </>
+  );
 }
 
 export default App;
