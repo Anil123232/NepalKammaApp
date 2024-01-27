@@ -3,7 +3,7 @@ import React from 'react';
 import {useGlobalStore} from '../../global/store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {StackNavigationProp} from '@react-navigation/stack';
-import {RootStackParamsList} from '../../../App';
+import { RootStackParamsList } from '../../navigation/AppStack';
 
 interface logOutProps {
   navigation: StackNavigationProp<RootStackParamsList>;

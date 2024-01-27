@@ -7,7 +7,6 @@ import {
 } from 'react-native-responsive-dimensions';
 import {LoginSVG} from '../../components/SvgComponents';
 import {StackNavigationProp} from '@react-navigation/stack';
-import {RootStackParamsList} from '../../../App';
 import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
 import {Formik} from 'formik';
 import * as Yup from 'yup';
@@ -17,6 +16,7 @@ import {ErrorToast} from '../../components/ErrorToast';
 import {SuccessToast} from '../../components/SuccessToast';
 import {useUserContext} from '../../contexts/UserContext';
 import {useGlobalStore} from '../../global/store';
+import {RootStackParamsList} from '../../navigation/AppStack';
 
 interface LoginScreenProps {
   navigation: StackNavigationProp<RootStackParamsList>;
@@ -64,9 +64,9 @@ const Login = ({navigation}: LoginScreenProps) => {
       setCurrentUser(response.token);
       setUser(response.user);
       SuccessToast(response.message);
-      response.user.role === 'job_seeker' && navigation.navigate('Job_Seeker');
+      response.user.role === 'job_seeker' && navigation.replace('Job_Seeker');
       response.user.role === 'job_provider' &&
-        navigation.navigate('Job_Provider');
+        navigation.replace('Job_Provider');
 
       // setting the token in async storage
       setToken('currentUser', response.token);

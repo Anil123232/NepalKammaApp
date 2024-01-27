@@ -10,8 +10,8 @@ import {
 import {LoginSignupStore} from '../screens/LoginSignup/helper/LoginSignupStore';
 import {ErrorToast} from './ErrorToast';
 import {StackNavigationProp} from '@react-navigation/stack';
-import {RootStackParamsList} from '../../App';
 import ModalBox from './ModalBox';
+import { RootStackParamsList } from '../navigation/AppStack';
 
 interface SignUpDetails {
   username: string;

@@ -2,7 +2,7 @@ import {View, Text} from 'react-native';
 import React, {useEffect} from 'react';
 import {useGlobalStore} from '../global/store';
 import {StackNavigationProp} from '@react-navigation/stack';
-import {RootStackParamsList} from '../../App';
+import {RootStackParamsList} from '../navigation/AppStack';
 
 interface mainHomeStoreState {
   checkAuth: () => Promise<any>;
@@ -29,11 +29,11 @@ const MainHome = ({navigation}: MainHomeScreenProps) => {
         // if user is job seeker
         getUser &&
           getUser.role === 'job_seeker' &&
-          navigation.navigate('Job_Seeker');
+          navigation.replace('Job_Seeker');
         // if user is job provider
         getUser &&
           getUser.role === 'job_provider' &&
-          navigation.navigate('Job_Provider');
+          navigation.replace('Job_Provider');
       }
     };
     checkAuthentication();
