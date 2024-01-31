@@ -1,8 +1,9 @@
-import {View, Text} from 'react-native';
 import React, {useEffect} from 'react';
 import {useGlobalStore} from '../global/store';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {RootStackParamsList} from '../navigation/AppStack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Loading from './GlobalComponents/Loading';
 
 interface mainHomeStoreState {
   checkAuth: () => Promise<any>;
@@ -23,6 +24,8 @@ const MainHome = ({navigation}: MainHomeScreenProps) => {
         useGlobalStore.getState() as mainHomeStoreState
       ).checkAuth();
 
+      console.log(response);
+
       // if response is true
       if (response) {
         const getUser = (useGlobalStore.getState() as userStateProps).user;
@@ -34,16 +37,20 @@ const MainHome = ({navigation}: MainHomeScreenProps) => {
         getUser &&
           getUser.role === 'job_provider' &&
           navigation.replace('Job_Provider');
+      } else {
+        // not logged in than clear the id in local storage
+        AsyncStorage.removeItem('currentUser');
+        useGlobalStore.setState({user: null});
+        navigation.reset({
+          index: 0,
+          routes: [{name: 'Login'}],
+        });
       }
     };
     checkAuthentication();
   }, []);
 
-  return (
-    <View>
-      <Text className="text-black">Loading....</Text>
-    </View>
-  );
+  return <Loading />;
 };
 
 export default MainHome;

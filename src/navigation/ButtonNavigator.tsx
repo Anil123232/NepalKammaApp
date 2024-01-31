@@ -1,12 +1,24 @@
 import React from 'react';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {JobProvider} from '../screens';
-import Search from '../screens/Job_provider/Search';
 import Create from '../screens/Job_provider/Create';
 import Message from '../screens/Job_provider/Message';
 import Notifications from '../screens/Job_provider/Notifications';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Feather from 'react-native-vector-icons/Feather';
+import People from '../screens/Job_provider/Search';
+import {RouteProp} from '@react-navigation/native';
+import {StackNavigationProp} from '@react-navigation/stack';
+import OtherProfile from '../screens/Job_provider/OtherProfile';
+
+export type BottomStackParamsList = {
+  Home: undefined;
+  Peoples: {id: string};
+  Create: undefined;
+  Message: undefined;
+  Notifications: undefined;
+  Other_Profile: {id: string};
+};
 
 const Tab = createBottomTabNavigator();
 
@@ -30,11 +42,11 @@ const ButtonNavigator = () => {
         }}
       />
       <Tab.Screen
-        name="Find"
-        component={Search}
+        name="Peoples"
+        component={People}
         options={{
           tabBarIcon: ({color}) => (
-            <Ionicons name="search" size={25} color={color} />
+            <Ionicons name="people" size={25} color={color} />
           ),
         }}
       />
@@ -66,6 +78,14 @@ const ButtonNavigator = () => {
           ),
           tabBarBadge: 3,
         }}
+      />
+      <Tab.Screen
+        name="Other_Profile"
+        component={OtherProfile}
+        options={() => ({
+          tabBarButton: () => null,
+          tabBarVisible: false,
+        })}
       />
     </Tab.Navigator>
   );

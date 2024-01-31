@@ -6,6 +6,8 @@ import {getItem} from '../utils/asyncStorage';
 import {Home, Login, OnboardingScreen, OtpScreen, Signup} from '../screens';
 import {JobProvider, JobSeeker} from '../screens';
 import DrawerStack from './DrawerStack';
+import Loading from '../screens/GlobalComponents/Loading';
+import OtherProfile from '../screens/Job_provider/OtherProfile';
 
 export type RootStackParamsList = {
   Onboarding: undefined;
@@ -14,6 +16,7 @@ export type RootStackParamsList = {
   OTP: {id: string; email: string; timer: string};
   Job_Seeker: undefined;
   Job_Provider: undefined;
+  Other_Profile: {id: string};
 };
 
 const stack = createNativeStackNavigator();
@@ -50,11 +53,11 @@ const AppStack = () => {
   };
 
   if (isOnboarding === null) {
-    return <Text>Loading.....</Text>;
+    return <Loading />;
   }
 
   if (loading) {
-    return <Text>Loading.....</Text>;
+    return <Loading />;
   }
 
   return (

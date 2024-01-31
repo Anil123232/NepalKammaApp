@@ -3,7 +3,7 @@ import React from 'react';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import {responsiveFontSize} from 'react-native-responsive-dimensions';
 
-const Cards = () => {
+const Cards = ({data}: any) => {
   return (
     <View className="p-4 shadow-2xl flex flex-col gap-y-2">
       <View className="flex flex-row gap-x-4">
@@ -23,7 +23,7 @@ const Cards = () => {
               fontSize: responsiveFontSize(2),
             }}>
             {' '}
-            I will something something
+            I will something something {data?.id}
           </Text>
           <Text
             className="text-black ml-1"

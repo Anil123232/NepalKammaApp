@@ -7,7 +7,7 @@ import {
 } from 'react-native-responsive-dimensions';
 import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
 import {StackNavigationProp} from '@react-navigation/stack';
-import {RootStackParamsList} from '../../../App';
+import {RootStackParamsList} from '../../navigation/AppStack';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import Who from '../../components/Who';
 import SignupForm from '../../components/SignupForm';

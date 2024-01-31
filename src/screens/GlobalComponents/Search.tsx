@@ -2,7 +2,7 @@ import React from 'react';
 import {View, TextInput, TouchableOpacity, StyleSheet} from 'react-native';
 import IonIcons from 'react-native-vector-icons/Ionicons';
 
-const Search = () => {
+const Search = ({text}: any) => {
   return (
     <View style={styles.container}>
       <View style={styles.searchContainer}>
@@ -12,7 +12,7 @@ const Search = () => {
         </View>
         <TextInput
           style={styles.input}
-          placeholder="Search gigs ..."
+          placeholder={text && text === 'Home' ? 'Search Gigs ...' : 'Search Freelancers ...'}
           placeholderTextColor="gray"
           underlineColorAndroid="transparent"
         />
