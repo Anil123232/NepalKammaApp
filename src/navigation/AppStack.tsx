@@ -8,6 +8,7 @@ import {JobProvider, JobSeeker} from '../screens';
 import DrawerStack from './DrawerStack';
 import Loading from '../screens/GlobalComponents/Loading';
 import OtherProfile from '../screens/Job_provider/OtherProfile';
+import DrawerStackSeeker from './DrawerStackSeeker';
 
 export type RootStackParamsList = {
   Onboarding: undefined;
@@ -92,7 +93,7 @@ const AppStack = () => {
       />
       <stack.Screen
         name="Job_Seeker"
-        component={JobSeeker}
+        component={DrawerStackSeeker}
         options={{headerShown: false}}
       />
       <stack.Screen

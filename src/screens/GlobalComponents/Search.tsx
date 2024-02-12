@@ -2,7 +2,7 @@ import React from 'react';
 import {View, TextInput, TouchableOpacity, StyleSheet} from 'react-native';
 import IonIcons from 'react-native-vector-icons/Ionicons';
 
-const Search = ({text}: any) => {
+const Search = ({text, user}: any) => {
   return (
     <View style={styles.container}>
       <View style={styles.searchContainer}>
@@ -10,12 +10,23 @@ const Search = ({text}: any) => {
         <IonIcons name="search" color="gray" size={25} />
 
         </View>
-        <TextInput
-          style={styles.input}
-          placeholder={text && text === 'Home' ? 'Search Gigs ...' : 'Search Freelancers ...'}
-          placeholderTextColor="gray"
-          underlineColorAndroid="transparent"
-        />
+        {
+          user?.role === 'job_seeker' ? (
+            <TextInput
+              style={styles.input}
+              placeholder='Search for job...'
+              placeholderTextColor="gray"
+              underlineColorAndroid="transparent"
+            />
+          ) : (
+            <TextInput
+              style={styles.input}
+              placeholder={text && text === 'Home' ? 'Search Gigs ...' : 'Search Freelancers ...'}
+              placeholderTextColor="gray"
+              underlineColorAndroid="transparent"
+            />
+          )
+        }
       </View>
       <TouchableOpacity
         style={styles.button}

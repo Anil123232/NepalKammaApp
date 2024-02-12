@@ -2,15 +2,17 @@ import {View, Text, Image} from 'react-native';
 import React from 'react';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import {responsiveFontSize} from 'react-native-responsive-dimensions';
+import IonIcons from 'react-native-vector-icons/Ionicons';
 
-const Cards = ({data}: any) => {
+const Cards = ({data, user}: any) => {
   return (
     <View className="p-4 shadow-2xl flex flex-col gap-y-2">
       <View className="flex flex-row gap-x-4">
         {/* image  */}
         <View>
           <Image
-            source={require('../../../assets/images/user-profile.jpg')}
+            // source={require('../../../assets/images/user-profile.jpg')}
+            source={{uri: 'https://randomuser.me/api/portraits/men/81.jpg'}}
             style={{height: 40, width: 40, borderRadius: 40}}
           />
         </View>
@@ -33,13 +35,29 @@ const Cards = ({data}: any) => {
             }}>
             Anil bhandari
           </Text>
-          <View className="flex flex-row gap-x-2">
-            <FontAwesome name="star" size={15} color="#E2EA3B" />
-            <FontAwesome name="star" size={15} color="#E2EA3B" />
-            <FontAwesome name="star" size={15} color="#E2EA3B" />
-            <FontAwesome name="star" size={15} color="gray" />
-            <FontAwesome name="star" size={15} color="gray" />
-          </View>
+          {user && user?.role === 'job_seeker' ? (
+            <>
+              <View className="flex flex-row gap-x-1 mt-2">
+                <IonIcons name="location-outline" size={15} color="#79AC78" />
+                <Text
+                className='text-color2'
+                  style={{
+                    fontFamily: 'Montserrat-Bold',
+                    fontSize: responsiveFontSize(1.5),
+                  }}>
+                  Salakpur
+                </Text>
+              </View>
+            </>
+          ) : (
+            <View className="flex flex-row gap-x-2">
+              <FontAwesome name="star" size={15} color="#E2EA3B" />
+              <FontAwesome name="star" size={15} color="#E2EA3B" />
+              <FontAwesome name="star" size={15} color="#E2EA3B" />
+              <FontAwesome name="star" size={15} color="gray" />
+              <FontAwesome name="star" size={15} color="gray" />
+            </View>
+          )}
         </View>
       </View>
       <View>

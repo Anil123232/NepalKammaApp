@@ -119,7 +119,7 @@ const BottomSheetCard = ({bottomSheetModalRef, data}: any) => {
             About this gig
           </Text>
           <Text
-            className="text-black tracking-wide"
+            className="text-black tracking-wider leading-5"
             style={{
               fontFamily: 'Montserrat-Regular',
               fontSize: responsiveFontSize(1.75),
@@ -162,7 +162,7 @@ const BottomSheetCard = ({bottomSheetModalRef, data}: any) => {
             }}>
             For more Details
           </Text>
-          <View className="flex flex-row items-center justify-between">
+          <View className="flex flex-row pt-2 items-center justify-between">
             <TouchableOpacity>
               <Text
                 className="text-white py-2 px-5 bg-color2 rounded-md"

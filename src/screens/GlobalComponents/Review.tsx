@@ -50,10 +50,10 @@ const Review = () => {
             </Text>
           </View>
           <Text
-            className="text-black"
+            className="text-black tracking-wider leading-5"
             style={{
               fontFamily: 'Montserrat-Regular',
-              fontSize: responsiveFontSize(1.75),
+              fontSize: responsiveFontSize(1.65),
             }}>
             This is an amazing and talented designer. He has been my designer
             since I meet him. I highly recommend him. Thank you seller.
