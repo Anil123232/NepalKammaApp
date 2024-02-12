@@ -19,6 +19,7 @@ import Cards from '../GlobalComponents/Cards';
 import {data} from './Home';
 import {DrawerStackParamsListSeeker} from '../../navigation/DrawerStackSeeker';
 import {DrawerNavigationProp} from '@react-navigation/drawer';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 interface MyProfileProps {
   navigation: DrawerNavigationProp<DrawerStackParamsListSeeker>;
@@ -59,7 +60,7 @@ const MyProfile = ({navigation}: MyProfileProps) => {
           {/* profile pic  */}
           <View>
             <Image
-              source={require('../../../assets/images/user-profile.jpg')}
+              source={{uri: "https://randomuser.me/api/portraits/men/82.jpg"}}
               style={{
                 width: 100,
                 height: 100,
@@ -74,14 +75,17 @@ const MyProfile = ({navigation}: MyProfileProps) => {
           <View
             className="flex flex-col gap-y-2"
             style={{width: responsiveWidth(60)}}>
-            <Text
-              className="text-black"
-              style={{
-                fontFamily: 'Montserrat-Bold',
-                fontSize: responsiveHeight(3),
-              }}>
-              Anil Bhandari
-            </Text>
+            <View className="flex flex-row gap-x-2 items-center">
+              <Text
+                className="text-black"
+                style={{
+                  fontFamily: 'Montserrat-Bold',
+                  fontSize: responsiveHeight(3),
+                }}>
+                Anil Bhandari
+              </Text>
+              <MaterialIcons name="verified" size={17} color={'green'} />
+            </View>
             <View className="flex flex-row gap-x-1">
               {/* star  */}
               <IconIcons name="star" size={17} color="gray" />
@@ -134,7 +138,7 @@ const MyProfile = ({navigation}: MyProfileProps) => {
             </Text>
           </View>
           <View className="py-2 px-5 bg-color2 rounded-md flex flex-row items-center gap-x-1">
-            <FontAwesome name="share-square-o" size={17} color="white" />
+            {/* <FontAwesome name="share-square-o" size={17} color="white" /> */}
             <Text
               className=""
               style={{
@@ -144,6 +148,9 @@ const MyProfile = ({navigation}: MyProfileProps) => {
               }}>
               Share Profile
             </Text>
+          </View>
+          <View className="py-2 px-3 bg-color2 rounded-md flex flex-row items-center gap-x-1">
+            <IconIcons name="settings" size={17} color={'white'} />
           </View>
         </View>
         {/* other details */}

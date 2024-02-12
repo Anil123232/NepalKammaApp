@@ -54,7 +54,7 @@ const TopNav = ({props, user}: any) => {
       <TouchableOpacity onPress={()=> props.navigate("My_Profile")}>
       <View>
         <Image
-          source={require('../../../assets/images/user-profile.jpg')}
+          source={{uri: "https://randomuser.me/api/portraits/men/82.jpg"}}
           style={{height: 40, width: 40, borderRadius: 40}}
         />
       </View>

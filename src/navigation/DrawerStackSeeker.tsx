@@ -50,6 +50,7 @@ const DrawerStackSeeker = () => {
           drawerIcon: ({color}) => (
             <Ionicons name="person-outline" size={22} color={color} />
           ),
+          title: "Profile"
         }}
       />
       <Drawer.Screen
@@ -59,6 +60,7 @@ const DrawerStackSeeker = () => {
           drawerIcon: ({color}) => (
             <Octicons name="code-review" size={22} color={color} />
           ),
+          title: "Review"
         }}
       />
       <Drawer.Screen
@@ -68,6 +70,7 @@ const DrawerStackSeeker = () => {
           drawerIcon: ({color}) => (
             <FontAwesome name="buysellads" size={22} color={color} />
           ),
+          title: "Top Buyer"
         }}
       />
     </Drawer.Navigator>

@@ -137,7 +137,7 @@ const Home = ({navigation}: profileProps) => {
                   fontFamily: 'Montserrat-Bold',
                   fontSize: responsiveFontSize(2),
                 }}>
-                work and earn money
+                Job and earn money
               </Text>
             </View>
           </View>
@@ -204,7 +204,7 @@ const Home = ({navigation}: profileProps) => {
                       fontFamily: 'Montserrat-Bold',
                       fontSize: responsiveFontSize(1.5),
                     }}>
-                    Near by Work
+                    Nearby Jobs
                   </Text>
                 </TouchableOpacity>
               </View>

@@ -9,15 +9,16 @@ import OtherProfile from '../screens/Job_seeker/OtherProfile';
 import Explore from '../screens/Job_seeker/Explore';
 import CreateGigs from '../screens/Job_seeker/CreateGigs';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import MyProfile from '../screens/Job_seeker/MyProfile';
+import ActualMessage from '../screens/Job_seeker/ActualMessage';
 
 export type BottomStackParamsList = {
-  Home: undefined;
+  Home_bottom: undefined;
   explore: {id: string};
   CreateGigs: undefined;
   Message: undefined;
   Notifications: undefined;
   Other_Profile: {id: string};
+  Actual_Message: {conversation_id: string};
 };
 
 const Tab = createBottomTabNavigator();
@@ -82,6 +83,14 @@ const ButtonNavigatorSeeker = () => {
       <Tab.Screen
         name="Other_Profile"
         component={OtherProfile}
+        options={() => ({
+          tabBarButton: () => null,
+          tabBarVisible: false,
+        })}
+      />
+      <Tab.Screen
+        name="Actual_Message"
+        component={ActualMessage}
         options={() => ({
           tabBarButton: () => null,
           tabBarVisible: false,
