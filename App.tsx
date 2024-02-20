@@ -7,6 +7,7 @@ import AppStack from './src/navigation/AppStack';
 import DrawerStack from './src/navigation/DrawerStack';
 
 function App(): JSX.Element {
+
   return (
     <>
       <UserProvider>

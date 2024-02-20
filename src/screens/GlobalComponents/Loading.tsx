@@ -15,12 +15,13 @@ const Loading = () => {
       <Image
         source={require('../../../assets/images/NepalKamma.png')}
         style={{width: 300, height: 50}}
+        className="mt-11"
       />
-      <View>
+      <View className="mt-[-30px]">
         <LottieView
-          source={require('../../../assets/animation/vj6FO5omqH.json')}
+          source={require('../../../assets/animation/P2P9GT0Xpl.json')}
           ref={animationRef}
-          style={{width: 500, height: 300}}
+          style={{width: 500, height: 200}}
         />
       </View>
     </View>

@@ -39,7 +39,7 @@ const DrawerStack = () => {
         }}
       />
       <Drawer.Screen
-        name="Profile"
+        name="My_Profile"
         component={Profile}
         options={{
           drawerIcon: ({color}) => (

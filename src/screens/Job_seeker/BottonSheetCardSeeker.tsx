@@ -16,9 +16,8 @@ import AntDesign from 'react-native-vector-icons/AntDesign';
 import IonIcons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import Swiper from 'react-native-swiper';
 import Review from '../GlobalComponents/Review';
-import RenderHTML from 'react-native-render-html';
+import RenderHTML, {defaultSystemFonts} from 'react-native-render-html';
 import {systemFonts} from '../GlobalComponents/Cards';
 
 const userData = [
@@ -52,7 +51,7 @@ const userData = [
   },
 ];
 
-const BottomSheetCard = ({bottomSheetModalRef, data}: any) => {
+const BottonSheetCardSeeker = ({bottomSheetModalRef, data}: any) => {
   // Convert the single data into an array
   const dataArray = data ? [data] : [];
 
@@ -61,7 +60,7 @@ const BottomSheetCard = ({bottomSheetModalRef, data}: any) => {
   const {width} = useWindowDimensions();
 
   const generateHtmlPreview = () => {
-    let html = `<p style="color: black;">${data?.gig_description}</p>`;
+    let html = `<p style="color: black;">${data?.job_description}</p>`;
     html = html.replace(/\n/g, '<br/>');
     return html;
   };
@@ -69,7 +68,7 @@ const BottomSheetCard = ({bottomSheetModalRef, data}: any) => {
   const renderItem = ({item}: any) => (
     <View>
       {/* main body starts  */}
-      <View className="flex flex-col gap-y-5 p-8">
+      <View className="flex flex-col gap-y-4 p-8">
         {/* title  */}
         <View>
           <Text
@@ -78,7 +77,7 @@ const BottomSheetCard = ({bottomSheetModalRef, data}: any) => {
               fontFamily: 'Montserrat-Bold',
               fontSize: responsiveFontSize(2),
             }}>
-            I will do {data?.title}
+            {data?.title}
           </Text>
         </View>
         {/* uploader images profiel */}
@@ -86,7 +85,7 @@ const BottomSheetCard = ({bottomSheetModalRef, data}: any) => {
           {/* profile pic  */}
           <View>
             <Image
-              source={{uri: 'https://randomuser.me/api/portraits/women/22.jpg'}}
+              source={require('../../../assets/images/user-profile.jpg')}
               style={{height: 40, width: 40, borderRadius: 40}}
             />
           </View>
@@ -95,7 +94,6 @@ const BottomSheetCard = ({bottomSheetModalRef, data}: any) => {
             <Text
               className="text-black"
               style={{fontFamily: 'Montserrat-Bold'}}>
-              {' '}
               {data?.postedBy?.username}
             </Text>
             <View className="flex flex-row gap-x-1">
@@ -109,33 +107,18 @@ const BottomSheetCard = ({bottomSheetModalRef, data}: any) => {
             </View>
           </View>
         </View>
-        {/* photo/banner */}
-        <View style={{width: responsiveWidth(85), height: 200}}>
-          <Swiper showsButtons={true}>
-            {data?.images?.map((image: any) => (
-              <View
-                style={{alignItems: 'center', backgroundColor: '#fff'}}
-                key={image.img}>
-                <Image
-                  style={{width: responsiveWidth(85), height: 200}}
-                  // source={require('../../../assets/images/user-profile.jpg')}
-                  source={{uri: image}}
-                />
-                <Text className="text-black">Anil bhandari</Text>
-              </View>
-            ))}
-          </Swiper>
-        </View>
-        {/* about the gig  */}
+
+        {/* about the job  */}
         <View>
           <Text
             className="text-black"
             style={{
               fontFamily: 'Montserrat-Bold',
-              fontSize: responsiveFontSize(2),
+              fontSize: responsiveFontSize(1.75),
             }}>
-            About this gig
+            About this Job
           </Text>
+
           <RenderHTML
             contentWidth={width}
             source={{html: generateHtmlPreview()}}
@@ -148,7 +131,8 @@ const BottomSheetCard = ({bottomSheetModalRef, data}: any) => {
             systemFonts={systemFonts}
           />
         </View>
-        {/* skills required  */}
+
+        {/* skills required */}
         <View>
           <Text
             className="text-black"
@@ -156,20 +140,13 @@ const BottomSheetCard = ({bottomSheetModalRef, data}: any) => {
               fontFamily: 'Montserrat-Bold',
               fontSize: responsiveFontSize(1.75),
             }}>
-            Skills
+            Skills Required
           </Text>
 
           <View style={{padding: responsiveHeight(1)}}>
             <FlatList
               horizontal={true}
-              keyExtractor={(item, index) => index.toString()}
-              data={[
-                'Plumbing Repair',
-                'Teaching',
-                'Pipe Fitting',
-                'Troubleshooting',
-                'Customer Service',
-              ]}
+              data={data?.skills_required}
               renderItem={({item}) => {
                 return (
                   <View
@@ -189,6 +166,72 @@ const BottomSheetCard = ({bottomSheetModalRef, data}: any) => {
             />
           </View>
         </View>
+
+        <View className="flex flex-col">
+          <Text
+            className="text-black mb-2"
+            style={{
+              fontFamily: 'Montserrat-Bold',
+              fontSize: responsiveFontSize(1.75),
+            }}>
+            Payment
+          </Text>
+          <Text
+            className="text-black"
+            style={{
+              fontFamily: 'Montserrat-Regular',
+              fontSize: responsiveFontSize(1.75),
+            }}>
+            Payment Starts from Rs.{' '}
+            <Text className="text-black font-bold">{data?.price}</Text>
+          </Text>
+          <Text
+            className="text-red-500 mt-2 leading-4"
+            style={{
+              fontFamily: 'Montserrat-SemiBold',
+              fontSize: responsiveFontSize(1.5),
+            }}>
+            Payment varies based on experience, qualifications, and project
+            scope. Contact the job provider for details before applying. Thank
+            you for your proactive approach
+          </Text>
+        </View>
+
+        {/* Payment method */}
+        <View>
+          <Text
+            className="text-black"
+            style={{
+              fontFamily: 'Montserrat-Bold',
+              fontSize: responsiveFontSize(1.75),
+            }}>
+            Payment Method
+          </Text>
+
+          <View style={{padding: responsiveHeight(1)}}>
+            <FlatList
+              horizontal={true}
+              data={data?.payment_method}
+              renderItem={({item}) => {
+                return (
+                  <View
+                    style={{marginBottom: responsiveHeight(0.2)}}
+                    className=" border-color2 border-solid border-[1px] mr-2 py-1 px-2 rounded-md">
+                    <Text
+                      className="text-black"
+                      style={{
+                        fontSize: responsiveFontSize(1.75),
+                        fontFamily: 'Montserrat-Regular',
+                      }}>
+                      {item}
+                    </Text>
+                  </View>
+                );
+              }}
+            />
+          </View>
+        </View>
+
         {/* charging  */}
         <View className="flex flex-col gap-y-2">
           <Text
@@ -197,59 +240,51 @@ const BottomSheetCard = ({bottomSheetModalRef, data}: any) => {
               fontFamily: 'Montserrat-Bold',
               fontSize: responsiveFontSize(2),
             }}>
-            Pricing
+            For more Details
           </Text>
+          <View className="flex flex-row pt-2 items-center justify-around">
+            <TouchableOpacity>
+              <Text
+                className="text-white py-2 px-5 bg-color2 rounded-md"
+                style={{
+                  fontFamily: 'Montserrat-SemiBold',
+                  fontSize: responsiveFontSize(1.75),
+                }}>
+                Apply Now
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity>
+              <Text
+                className="text-white py-2 px-5 bg-color2 rounded-md"
+                style={{
+                  fontFamily: 'Montserrat-SemiBold',
+                  fontSize: responsiveFontSize(1.75),
+                }}>
+                Get Location
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View className="flex flex-row gap-x-2">
           <Text
-            className="text-black"
+            className="text-black mt-2 leading-4"
             style={{
-              fontFamily: 'Montserrat-Regular',
-              fontSize: responsiveFontSize(1.75),
+              fontFamily: 'Montserrat-SemiBold',
+              fontSize: responsiveFontSize(1.5),
             }}>
-            I will start from Rs.{''}
-            <Text className="text-black font-bold"> {data?.price}</Text> for
-            this gig.
+            Time Remaining for this Job
           </Text>
           <Text
             className="text-red-500 mt-2 leading-4"
             style={{
               fontFamily: 'Montserrat-SemiBold',
-              fontSize: responsiveFontSize(1.5),
-            }}>
-            Please be aware that pricing may vary depending on the complexity
-            and scale of the job. However, we believe in transparent pricing and
-            ensuring that you receive the best value for your investment
-          </Text>
-          <Text
-            className="text-black"
-            style={{
-              fontFamily: 'Montserrat-Bold',
               fontSize: responsiveFontSize(2),
             }}>
-            For more Details
+            1d 2h 3m
           </Text>
-          <View className="flex flex-row pt-2 items-center justify-between">
-            <TouchableOpacity>
-              <Text
-                className="text-white py-2 px-5 bg-color2 rounded-md"
-                style={{
-                  fontFamily: 'Montserrat-SemiBold',
-                  fontSize: responsiveFontSize(1.75),
-                }}>
-                Contact Me
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity>
-              <Text
-                className="text-white py-2 px-5 bg-color2 rounded-md"
-                style={{
-                  fontFamily: 'Montserrat-SemiBold',
-                  fontSize: responsiveFontSize(1.75),
-                }}>
-                Get My Location
-              </Text>
-            </TouchableOpacity>
-          </View>
         </View>
+
         {/* REview */}
         <View className="flex flex-col">
           <Text
@@ -258,7 +293,7 @@ const BottomSheetCard = ({bottomSheetModalRef, data}: any) => {
               fontFamily: 'Montserrat-Bold',
               fontSize: responsiveFontSize(2),
             }}>
-            Reviews
+            Seller Reviews
           </Text>
           {/* make a line */}
           <View
@@ -323,7 +358,6 @@ const BottomSheetCard = ({bottomSheetModalRef, data}: any) => {
       </View>
       <FlatList
         data={dataArray}
-        keyExtractor={(item, index) => index.toString()}
         // keyExtractor={(item) => item.id.toString()} // or item.whatever depending on your data structure
         // keyExtractor={item => item.id.toString()}
         // initialNumToRender={1}
@@ -336,4 +370,4 @@ const BottomSheetCard = ({bottomSheetModalRef, data}: any) => {
   );
 };
 
-export default BottomSheetCard;
+export default BottonSheetCardSeeker;

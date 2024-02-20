@@ -53,7 +53,7 @@ const AppStack = () => {
     // setLoading(false);
   };
 
-  if (isOnboarding === null) {
+  if (isOnboarding == null) {
     return <Loading />;
   }
 

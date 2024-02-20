@@ -11,7 +11,7 @@ const Review = () => {
         {/* profile  */}
         <View>
           <Image
-            source={require('../../../assets/images/user-profile.jpg')}
+            source={{uri: 'https://randomuser.me/api/portraits/men/71.jpg'}}
             style={{height: 40, width: 40, borderRadius: 40}}
           />
         </View>
@@ -34,10 +34,10 @@ const Review = () => {
             Kathmandu
           </Text>
           <View className="flex flex-row gap-x-1">
-            <IonIcons name="star" size={15} color="gray" />
-            <IonIcons name="star" size={15} color="gray" />
-            <IonIcons name="star" size={15} color="gray" />
-            <IonIcons name="star" size={15} color="gray" />
+            <IonIcons name="star" size={15} color="#E2EA3B" />
+            <IonIcons name="star" size={15} color="#E2EA3B" />
+            <IonIcons name="star" size={15} color="#E2EA3B" />
+            <IonIcons name="star" size={15} color="#E2EA3B" />
             <IonIcons name="star" size={15} color="gray" />
             <Text className="text-black pl-2 font-bold">(4)</Text>
             <Text
@@ -50,7 +50,7 @@ const Review = () => {
             </Text>
           </View>
           <Text
-            className="text-black tracking-wider leading-5"
+            className="text-black tracking-wider leading-4"
             style={{
               fontFamily: 'Montserrat-Regular',
               fontSize: responsiveFontSize(1.65),

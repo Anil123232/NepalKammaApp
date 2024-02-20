@@ -23,6 +23,8 @@ import {data} from './Home';
 import Review from '../GlobalComponents/Review';
 import {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
 import {BottomStackParamsList} from '../../navigation/ButtonNavigator';
+import {initialGigData, GigData, getJobProps} from './Home';
+import {FetchGigStore} from './helper/FetchGigStore';
 
 interface OtherProfileProps {
   navigation: BottomTabNavigationProp<BottomStackParamsList>;
@@ -33,6 +35,7 @@ const OtherProfile = ({navigation, route}: OtherProfileProps) => {
   const id = route?.params.id;
   console.log('this is', id);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [gigDetails, setgigDetails] = React.useState<GigData>(initialGigData);
 
   const handleNextItemPress = () => {
     var nextIndex = (currentIndex + 1) % data.length;
@@ -42,10 +45,20 @@ const OtherProfile = ({navigation, route}: OtherProfileProps) => {
     setCurrentIndex(nextIndex);
   };
 
+  //get all job details
+  const getGigDetails = async () => {
+    const response = await (FetchGigStore.getState() as getJobProps).getGig();
+    setgigDetails(response);
+  };
+
+  React.useEffect(() => {
+    getGigDetails();
+  }, []);
+
   return (
     <ScrollView className="bg-white">
       <View
-        className="w-[95%] flex flex-col"
+        className="w-[100%] flex flex-col"
         style={{padding: responsiveHeight(2)}}>
         {/* back button */}
         <TouchableOpacity
@@ -252,9 +265,9 @@ const OtherProfile = ({navigation, route}: OtherProfileProps) => {
             {/* gigs card start  */}
             <FlatList
               horizontal={true}
-              keyExtractor={item => item.id.toString()}
-              initialNumToRender={5}
-              data={data.slice(currentIndex, currentIndex + 5)}
+              keyExtractor={item => item._id.toString()}
+              // initialNumToRender={2}
+              data={gigDetails?.gig?.slice(currentIndex, currentIndex + 1)}
               renderItem={({item}) => (
                 <View style={{width: responsiveWidth(90)}}>
                   <TouchableWithoutFeedback

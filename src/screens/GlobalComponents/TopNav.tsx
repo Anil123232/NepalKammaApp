@@ -5,11 +5,9 @@ import {
   responsiveFontSize,
   responsiveWidth,
 } from 'react-native-responsive-dimensions';
-import { DrawerStackParamsListSeeker } from '../../navigation/DrawerStackSeeker';
-
+import {DrawerStackParamsListSeeker} from '../../navigation/DrawerStackSeeker';
 
 const TopNav = ({props, user}: any) => {
-  console.log("this is ", props)
   return (
     <View className="flex flex-row items-center justify-between">
       {/* hamburger  */}
@@ -51,13 +49,13 @@ const TopNav = ({props, user}: any) => {
         </View>
       </View>
       {/* image  */}
-      <TouchableOpacity onPress={()=> props.navigate("My_Profile")}>
-      <View>
-        <Image
-          source={{uri: "https://randomuser.me/api/portraits/men/82.jpg"}}
-          style={{height: 40, width: 40, borderRadius: 40}}
-        />
-      </View>
+      <TouchableOpacity onPress={() => props.navigate('My_Profile')}>
+        <View>
+          <Image
+            source={{uri: 'https://randomuser.me/api/portraits/men/82.jpg'}}
+            style={{height: 40, width: 40, borderRadius: 40}}
+          />
+        </View>
       </TouchableOpacity>
     </View>
   );

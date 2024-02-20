@@ -1,5 +1,5 @@
 import {View, Text, TouchableOpacity, FlatList} from 'react-native';
-import React, {useCallback, useMemo, useRef} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef} from 'react';
 import {useGlobalStore} from '../../global/store';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {RootStackParamsList} from '../../navigation/AppStack';
@@ -14,6 +14,8 @@ import Cards from '../GlobalComponents/Cards';
 import {TouchableWithoutFeedback} from 'react-native-gesture-handler';
 import {BottomSheetModal, BottomSheetModalProvider} from '@gorhom/bottom-sheet';
 import BottomSheetCard from './BottomSheetCard';
+import {FetchGigStore} from './helper/FetchGigStore';
+import CardLoader from '../GlobalComponents/CardLoader';
 
 interface logOutProps {
   navigation: StackNavigationProp<RootStackParamsList>;
@@ -32,6 +34,18 @@ type dataProps = {
   id: number;
   what: string;
   text: string;
+};
+
+export interface GigData {
+  gig: any[];
+}
+
+export interface getJobProps {
+  getGig: () => Promise<GigData>;
+}
+
+export const initialGigData: GigData = {
+  gig: [],
 };
 
 export const data: dataProps[] = [
@@ -82,6 +96,8 @@ const Home = ({navigation}: logOutProps) => {
   console.log(user);
   const [isPopular, setIsPopular] = React.useState<boolean>(true);
   const [selectedData, setSelectedData] = React.useState<any>(null);
+  const [gigDetails, setgigDetails] = React.useState<GigData>(initialGigData);
+  const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
   const Drawer = createDrawerNavigator();
 
@@ -97,6 +113,18 @@ const Home = ({navigation}: logOutProps) => {
   }, []);
   const handleSheetChanges = useCallback((index: number) => {
     console.log('handleSheetChanges', index);
+  }, []);
+
+  //get all job details
+  const getGigDetails = async () => {
+    const response = await (FetchGigStore.getState() as getJobProps).getGig();
+    setgigDetails(response);
+    setIsLoading(false);
+    console.log(response);
+  };
+
+  useEffect(() => {
+    getGigDetails();
   }, []);
 
   return (
@@ -178,12 +206,18 @@ const Home = ({navigation}: logOutProps) => {
               </View>
             </View>
             {/* text end  */}
-
-            {isPopular ? (
+            {/* */}
+            {isLoading && (
               <FlatList
-                keyExtractor={item => item.id.toString()}
+                data={[1, 1, 1, 1, 1]}
+                renderItem={({item, index}) => <CardLoader />}
+              />
+            )}
+            {!isLoading && isPopular && (
+              <FlatList
+                keyExtractor={item => item._id.toString()}
                 initialNumToRender={5}
-                data={data.slice(0, 5)}
+                data={gigDetails?.gig?.slice(0, 5)}
                 renderItem={({item}) => (
                   <TouchableWithoutFeedback
                     onPress={() => {
@@ -197,11 +231,22 @@ const Home = ({navigation}: logOutProps) => {
                   paddingBottom: responsiveHeight(50),
                   paddingTop: responsiveHeight(2),
                 }}></FlatList>
-            ) : (
+            )}
+
+            {!isLoading && !isPopular && (
               <FlatList
-                keyExtractor={item => item.id.toString()}
-                data={data}
-                renderItem={({item}) => <Cards />}
+                keyExtractor={item => item._id.toString()}
+                initialNumToRender={5}
+                data={gigDetails?.gig?.slice(0, 5)}
+                renderItem={({item}) => (
+                  <TouchableWithoutFeedback
+                    onPress={() => {
+                      setSelectedData(item);
+                      handlePresentModalPress();
+                    }}>
+                    <Cards data={item} />
+                  </TouchableWithoutFeedback>
+                )}
                 contentContainerStyle={{
                   paddingBottom: responsiveHeight(50),
                   paddingTop: responsiveHeight(2),
@@ -227,7 +272,10 @@ const Home = ({navigation}: logOutProps) => {
               snapPoints={snapPoints}
               onChange={handleSheetChanges}>
               {/* <View className="flex flex-1 items-center rounded-t-2xl"> */}
-              <BottomSheetCard bottomSheetModalRef={bottomSheetModalRef} data={selectedData} />
+              <BottomSheetCard
+                bottomSheetModalRef={bottomSheetModalRef}
+                data={selectedData}
+              />
               {/* </View> */}
             </BottomSheetModal>
           </View>

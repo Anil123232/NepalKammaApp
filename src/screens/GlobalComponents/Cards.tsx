@@ -1,12 +1,36 @@
-import {View, Text, Image} from 'react-native';
+import {View, Text, Image, useWindowDimensions} from 'react-native';
 import React from 'react';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import {responsiveFontSize} from 'react-native-responsive-dimensions';
+import {
+  responsiveFontSize,
+  responsiveHeight,
+  responsiveWidth,
+} from 'react-native-responsive-dimensions';
 import IonIcons from 'react-native-vector-icons/Ionicons';
+import RenderHtml, {defaultSystemFonts} from 'react-native-render-html';
+export const systemFonts = [
+  ...defaultSystemFonts,
+  'Montserrat-Regular',
+  'Montserrat-SemiBold',
+  'Montserrat-Bold',
+  'Montserrat-Medium',
+];
 
 const Cards = ({data, user}: any) => {
+  const {width} = useWindowDimensions();
+
+  const generateHtmlPreview = () => {
+    let html = `<p style="color: black;">${
+      user && user?.role === 'job_seeker'
+        ? data?.job_description
+        : data?.gig_description
+    }</p>`;
+    html = html.replace(/\n/g, '<br/>');
+    return html;
+  };
+
   return (
-    <View className="p-4 shadow-2xl flex flex-col gap-y-2">
+    <View className="p-4 shadow-2xl flex flex-col bg-white">
       <View className="flex flex-row gap-x-4">
         {/* image  */}
         <View>
@@ -22,10 +46,9 @@ const Cards = ({data, user}: any) => {
             className="text-black"
             style={{
               fontFamily: 'Montserrat-Bold',
-              fontSize: responsiveFontSize(2),
+              fontSize: responsiveFontSize(1.75),
             }}>
-            {' '}
-            I will something something {data?.id}
+            {data?.title}
           </Text>
           <Text
             className="text-black ml-1"
@@ -33,19 +56,19 @@ const Cards = ({data, user}: any) => {
               fontFamily: 'Montserrat-SemiBold',
               fontSize: responsiveFontSize(1.5),
             }}>
-            Anil bhandari
+            {data?.postedBy?.username}
           </Text>
           {user && user?.role === 'job_seeker' ? (
             <>
               <View className="flex flex-row gap-x-1 mt-2">
                 <IonIcons name="location-outline" size={15} color="#79AC78" />
                 <Text
-                className='text-color2'
+                  className="text-color2"
                   style={{
                     fontFamily: 'Montserrat-Bold',
                     fontSize: responsiveFontSize(1.5),
                   }}>
-                  Salakpur
+                  {data?.location}
                 </Text>
               </View>
             </>
@@ -60,18 +83,26 @@ const Cards = ({data, user}: any) => {
           )}
         </View>
       </View>
-      <View>
-        <Text
-          className="text-black tracking-wide"
-          style={{
+      <View
+        className=""
+        style={{
+          width: responsiveWidth(82.75),
+        }}>
+        <RenderHtml
+          contentWidth={width}
+          source={{html: generateHtmlPreview()}}
+          baseStyle={{
+            color: 'black',
             fontFamily: 'Montserrat-Regular',
             fontSize: responsiveFontSize(1.75),
-          }}>
-          Lorem ipsum dolor sit amet consectetur adipisicing elit. Sint nisi
-          officiis culpa, vitae tenetur corrupti. Beatae necessitatibus unde
-          facere sequi libero perspiciatis, hic recusandae nulla a quas nostrum
-          quidem voluptate?
-        </Text>
+            lineHeight: 18.5,
+            height: responsiveHeight(21.2),
+          }}
+          // tagsStyles={{
+          //   p: {color: 'red', fontFamily: 'Montserrat-Bold'},
+          // }}
+          systemFonts={systemFonts}
+        />
       </View>
       <View></View>
     </View>

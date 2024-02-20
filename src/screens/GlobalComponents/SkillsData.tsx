@@ -95,6 +95,17 @@ export const payment_method = [
   },
 ];
 
+export const genderList = [
+  {
+    id: 1,
+    gender: 'male',
+  },
+  {
+    id: 2,
+    gender: 'female',
+  },
+];
+
 export const category = [
   {
     id: 1,

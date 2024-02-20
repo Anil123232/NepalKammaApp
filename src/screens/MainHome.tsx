@@ -50,6 +50,7 @@ const MainHome = ({navigation}: MainHomeScreenProps) => {
     checkAuthentication();
   }, []);
 
+
   return <Loading />;
 };
 

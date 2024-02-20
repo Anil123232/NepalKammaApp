@@ -11,7 +11,9 @@ import {LoginSignupStore} from '../screens/LoginSignup/helper/LoginSignupStore';
 import {ErrorToast} from './ErrorToast';
 import {StackNavigationProp} from '@react-navigation/stack';
 import ModalBox from './ModalBox';
-import { RootStackParamsList } from '../navigation/AppStack';
+import {RootStackParamsList} from '../navigation/AppStack';
+import {Picker} from '@react-native-picker/picker';
+import {genderList} from '../screens/GlobalComponents/SkillsData';
 
 interface SignUpDetails {
   username: string;
@@ -19,6 +21,7 @@ interface SignUpDetails {
   password: string;
   confirmPassword?: string;
   role?: string | null;
+  gender?: string | null;
 }
 
 interface SignupFormProps {
@@ -48,6 +51,7 @@ const SignupForm = ({role, navigation}: SignupFormProps) => {
   //  state
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isModalVisible, setModalVisible] = useState<boolean>(false);
+  const [gender, setGender] = React.useState<string>('');
   const [responseMessage, setResponseMessage] = useState<string>('');
   const [otpDetails, setOtpDetails] = useState<any>({
     userId: '',
@@ -59,12 +63,13 @@ const SignupForm = ({role, navigation}: SignupFormProps) => {
   const handleSignup = async (values: SignUpDetails) => {
     setIsSubmitting(true);
     try {
-      if (role) {
+      if (role && gender) {
         const userDetails: SignUpDetails = {
           username: values.username,
           email: values.email,
           password: values.password,
           role: role,
+          gender: gender,
         };
 
         const response = await (
@@ -139,6 +144,7 @@ const SignupForm = ({role, navigation}: SignupFormProps) => {
                 </Text>
               )}
             </View>
+
             {/* email */}
             <View className="gap-y-2">
               <Text
@@ -213,6 +219,33 @@ const SignupForm = ({role, navigation}: SignupFormProps) => {
                   {errors.confirmPassword}
                 </Text>
               )}
+            </View>
+            {/* gender  */}
+            <View className="gap-y-2">
+              <Text
+                className="text-black"
+                style={{fontFamily: 'Montserrat-Medium'}}>
+                Gender
+              </Text>
+              <Picker
+                selectedValue={gender}
+                onValueChange={itemValue => setGender(itemValue)}
+                style={{
+                  height: 40,
+                  backgroundColor: '#effff8',
+                  borderRadius: 20,
+                  width: '100%',
+                  color: 'black',
+                  marginBottom: responsiveHeight(4),
+                }}>
+                {genderList.map(item => (
+                  <Picker.Item
+                    key={item.id}
+                    label={item.gender}
+                    value={item.gender}
+                  />
+                ))}
+              </Picker>
             </View>
             {/* Add a submit button */}
             <View>

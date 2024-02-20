@@ -22,20 +22,28 @@ import MultiSelect from 'react-native-multiple-select';
 import {BottomSheetModal, BottomSheetModalProvider} from '@gorhom/bottom-sheet';
 import BottonSheetEditor from './BottonSheetEditor';
 import {Picker} from '@react-native-picker/picker';
+import {JobStore} from './helper/JobStore';
+import {SuccessToast} from '../../components/SuccessToast';
+import {ErrorToast} from '../../components/ErrorToast';
+import GeoLocation from '../GlobalComponents/GeoLocation';
 
 interface CreateJobDetailsProps {
-  job_title: string;
-  location: string;
+  title: string;
+  // location: string;
   // job_description: string;
-  phonenumber: string;
+  phoneNumber: string;
   price: number;
   // skills_required: Array<typeof Skills_data>;
 }
 
+interface createJobProps {
+  createJob: (values: any) => Promise<any>;
+}
+
 const initialValues: CreateJobDetailsProps = {
-  job_title: '',
-  location: '',
-  phonenumber: '',
+  title: '',
+  // location: '',
+  phoneNumber: '',
   price: 500,
 };
 
@@ -48,6 +56,13 @@ function CreateForm() {
   const [selectedCategory, setSelectedCategory] = React.useState<string>('');
   // job description
   const [job_description, setJobDescription] = React.useState<string>('');
+  //location name
+  const [locationName, setLocationName] = React.useState<string>('');
+
+  //geometry
+  const [geometry, setGeometry] = React.useState<any>({});
+
+  const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false);
 
   // ref
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
@@ -63,16 +78,42 @@ function CreateForm() {
     console.log('handleSheetChanges', index);
   }, []);
 
-  const handleCreateJob = (values: CreateJobDetailsProps) => {
-    const newValues = {
-      ...values,
-      skills_required: selectedItem,
-      payment_method: selectedItem2,
-      category: selectedCategory,
-      job_description: job_description,
-    };
-    console.log(newValues);
+  const handleCreateJob = async (values: CreateJobDetailsProps) => {
+    setIsSubmitting(true);
+    try {
+      const skillsRequired = selectedItem.map(
+        (index: any) => Skills_data[index - 1],
+      );
+
+      const paymentMethods = selectedItem2.map(
+        (index: any) => payment_method[index - 1],
+      );
+
+      const newValues = {
+        ...values,
+        skills_required: skillsRequired?.map((skill: any) => skill.name),
+        payment_method: paymentMethods?.map((method: any) => method.name),
+        category: selectedCategory,
+        job_description: job_description,
+      };
+      const response = await (JobStore.getState() as createJobProps).createJob(
+        newValues,
+      );
+      if (response) {
+        SuccessToast('Job Created Successfully');
+      }
+    } catch (error: any) {
+      const errorMessage = error
+        .toString()
+        .replace('[Error: ', '')
+        .replace(']', '');
+      ErrorToast(errorMessage);
+    }
+    setIsSubmitting(false);
   };
+
+  console.log('from create job', geometry);
+  console.log('from create job', locationName)
 
   return (
     <View className="w-[100%] py-5 bg-white flex items-center justify-center">
@@ -115,15 +156,15 @@ function CreateForm() {
                     style={{fontFamily: 'Montserrat-SemiBold'}}
                     placeholder="Job Title"
                     placeholderTextColor="#bdbebf"
-                    onChangeText={handleChange('job_title')}
-                    onBlur={handleBlur('job_title')}
-                    value={values.job_title}
+                    onChangeText={handleChange('title')}
+                    onBlur={handleBlur('title')}
+                    value={values.title}
                   />
-                  {errors.job_title && (
+                  {errors.title && (
                     <Text
                       className="text-red-500"
                       style={{fontFamily: 'Montserrat-Regular'}}>
-                      {errors.job_title}
+                      {errors.title}
                     </Text>
                   )}
                 </View>
@@ -134,7 +175,11 @@ function CreateForm() {
                     style={{fontFamily: 'Montserrat-Medium'}}>
                     Location
                   </Text>
-                  <TextInput
+                  <GeoLocation
+                    setGeometry={setGeometry}
+                    setLocationName={setLocationName}
+                  />
+                  {/* <TextInput
                     className="bg-[#effff8] rounded-md text-black px-2"
                     style={{fontFamily: 'Montserrat-SemiBold'}}
                     placeholder="Enter Location"
@@ -149,7 +194,7 @@ function CreateForm() {
                       style={{fontFamily: 'Montserrat-Regular'}}>
                       {errors.location}
                     </Text>
-                  )}
+                  )} */}
                 </View>
 
                 {/* phone number */}
@@ -162,17 +207,17 @@ function CreateForm() {
                   <TextInput
                     className="bg-[#effff8] rounded-md text-black px-2"
                     style={{fontFamily: 'Montserrat-SemiBold'}}
-                    placeholder="Enter phonenumber"
+                    placeholder="Enter phoneNumber"
                     placeholderTextColor="#bdbebf"
-                    onChangeText={handleChange('phonenumber')}
-                    onBlur={handleBlur('phonenumber')}
-                    value={values.phonenumber}
+                    onChangeText={handleChange('phoneNumber')}
+                    onBlur={handleBlur('phoneNumber')}
+                    value={values.phoneNumber}
                   />
-                  {errors.phonenumber && (
+                  {errors.phoneNumber && (
                     <Text
                       className="text-red-500"
                       style={{fontFamily: 'Montserrat-Regular'}}>
-                      {errors.phonenumber}
+                      {errors.phoneNumber}
                     </Text>
                   )}
                 </View>
@@ -400,8 +445,7 @@ function CreateForm() {
                           fontFamily: 'Montserrat-Bold',
                           fontSize: responsiveFontSize(2.25),
                         }}>
-                        Create Job
-                        {/* {isSubmitting ? 'Signing Up...' : 'Sign Up'} */}
+                        {isSubmitting ? 'Creating Job...' : 'Create Job'}
                       </Text>
                     </View>
                   </TouchableOpacity>

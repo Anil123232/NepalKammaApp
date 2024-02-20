@@ -1,8 +1,12 @@
-import {View, Text, TouchableOpacity, FlatList} from 'react-native';
-import React, {useCallback, useMemo, useRef} from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  FlatList,
+  PermissionsAndroid,
+} from 'react-native';
+import React, {useCallback, useEffect, useMemo, useRef} from 'react';
 import {useGlobalStore} from '../../global/store';
-import {StackNavigationProp} from '@react-navigation/stack';
-import {RootStackParamsList} from '../../navigation/AppStack';
 import {
   DrawerNavigationProp,
   createDrawerNavigator,
@@ -16,8 +20,11 @@ import Search from '../GlobalComponents/Search';
 import Cards from '../GlobalComponents/Cards';
 import {TouchableWithoutFeedback} from 'react-native-gesture-handler';
 import {BottomSheetModal, BottomSheetModalProvider} from '@gorhom/bottom-sheet';
-import BottomSheetCard from '../Job_provider/BottomSheetCard';
+import BottonSheetCardSeeker from './BottonSheetCardSeeker';
 import {DrawerStackParamsListSeeker} from '../../navigation/DrawerStackSeeker';
+import {FetchJobStore} from './helper/FetchJobStore';
+import CardLoader from '../GlobalComponents/CardLoader';
+import Geolocation from 'react-native-geolocation-service';
 
 interface profileProps {
   navigation: DrawerNavigationProp<DrawerStackParamsListSeeker>;
@@ -30,6 +37,13 @@ export type userStateProps = {
   isVerified: boolean;
   role: string;
   username: string;
+  location: string;
+  profile_pic: string;
+  title: string;
+  skills: any[];
+  isTick: boolean;
+  bio: string;
+  about_me: string;
 };
 
 type dataProps = {
@@ -38,6 +52,24 @@ type dataProps = {
   text: string;
 };
 
+export interface JobDetails {
+  _id: string;
+  category: string;
+  createdAt: string;
+  job_description: string;
+  location: string;
+  payment_method: any[];
+  phoneNumber: string;
+  postedBy: any;
+  price: number;
+  skills_required: any[];
+  title: string;
+  updatedAt: string;
+}
+
+export interface JobData {
+  job: JobDetails[];
+}
 export const data: dataProps[] = [
   {
     id: 1,
@@ -81,11 +113,21 @@ export const data: dataProps[] = [
   },
 ];
 
+export interface getJobProps {
+  getJob: () => Promise<JobData>;
+}
+
+export const initialJobData: JobData = {
+  job: [],
+};
+
 const Home = ({navigation}: profileProps) => {
   const user: userStateProps = useGlobalStore((state: any) => state.user);
   console.log(user);
   const [currentTab, setCurrentTab] = React.useState<string>('Best Matches');
   const [selectedData, setSelectedData] = React.useState<any>(null);
+  const [jobDetails, setJobDetails] = React.useState<JobData>(initialJobData);
+  const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
   const Drawer = createDrawerNavigator();
 
@@ -103,6 +145,52 @@ const Home = ({navigation}: profileProps) => {
     console.log('handleSheetChanges', index);
   }, []);
 
+  //get all job details
+  const getJobDetails = async () => {
+    const response = await (FetchJobStore.getState() as getJobProps).getJob();
+    setJobDetails(response);
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    requestCameraPermission();
+    getJobDetails();
+  }, []);
+
+  const requestCameraPermission = async () => {
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        {
+          title: 'Cool Photo App Location Permission',
+          message:
+            'Cool Photo App needs access to your Location ' +
+            'so you can take awesome pictures.',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        },
+      );
+      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+        Geolocation.getCurrentPosition(
+          position => {
+            console.log(position);
+          },
+          error => {
+            // See error code charts below.
+            console.log(error.code, error.message);
+          },
+          {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
+        );
+      } else {
+        console.log('Location permission denied');
+      }
+    } catch (err) {
+      console.warn(err);
+    }
+  };
+  
+
   return (
     <BottomSheetModalProvider>
       <View
@@ -110,7 +198,7 @@ const Home = ({navigation}: profileProps) => {
           flex: 1,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: 'white',
+          backgroundColor: '#fff',
           paddingTop: responsiveHeight(16),
         }}>
         <View className="w-[95%]" style={{padding: responsiveHeight(2)}}>
@@ -212,11 +300,17 @@ const Home = ({navigation}: profileProps) => {
             {/* text end  */}
 
             {/* Best Matches  */}
-            {currentTab === 'Best Matches' && (
+            {isLoading && (
               <FlatList
-                keyExtractor={item => item.id.toString()}
+                data={[1, 1, 1, 1, 1]}
+                renderItem={({item, index}) => <CardLoader />}
+              />
+            )}
+            {!isLoading && currentTab === 'Best Matches' && (
+              <FlatList
+                keyExtractor={item => item._id.toString()}
                 initialNumToRender={5}
-                data={data.slice(0, 5)}
+                data={jobDetails?.job?.slice(0, 5)}
                 renderItem={({item}) => (
                   <TouchableWithoutFeedback
                     onPress={() => {
@@ -228,29 +322,29 @@ const Home = ({navigation}: profileProps) => {
                 )}
                 contentContainerStyle={{
                   paddingBottom: responsiveHeight(50),
-                  paddingTop: responsiveHeight(2),
+                  paddingTop: responsiveHeight(1),
                 }}></FlatList>
             )}
             {/* Most Recent  */}
-            {currentTab === 'Most Recent' && (
+            {!isLoading && currentTab === 'Most Recent' && (
               <FlatList
-                keyExtractor={item => item.id.toString()}
-                data={data}
+                keyExtractor={item => item._id.toString()}
+                data={jobDetails?.job}
                 renderItem={({item}) => <Cards data={item} user={user} />}
                 contentContainerStyle={{
                   paddingBottom: responsiveHeight(50),
-                  paddingTop: responsiveHeight(2),
+                  paddingTop: responsiveHeight(1),
                 }}></FlatList>
             )}
             {/* Near by Work */}
-            {currentTab === 'Nearby' && (
+            {!isLoading && currentTab === 'Nearby' && (
               <FlatList
                 keyExtractor={item => item.id.toString()}
                 data={data.slice(0, 3)}
                 renderItem={({item}) => <Cards data={item} user={user} />}
                 contentContainerStyle={{
                   paddingBottom: responsiveHeight(50),
-                  paddingTop: responsiveHeight(2),
+                  paddingTop: responsiveHeight(1),
                 }}></FlatList>
             )}
 
@@ -274,7 +368,7 @@ const Home = ({navigation}: profileProps) => {
               snapPoints={snapPoints}
               onChange={handleSheetChanges}>
               {/* <View className="flex flex-1 items-center rounded-t-2xl"> */}
-              <BottomSheetCard
+              <BottonSheetCardSeeker
                 bottomSheetModalRef={bottomSheetModalRef}
                 data={selectedData}
               />

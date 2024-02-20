@@ -21,22 +21,32 @@ import {Picker} from '@react-native-picker/picker';
 import BottonSheetEditorSeeker from './BottonSheetEditorSeeker';
 import ImagePicker from 'react-native-image-crop-picker';
 import Swiper from 'react-native-swiper';
+import axios from 'axios';
+import {SuccessToast} from '../../components/SuccessToast';
+import {CreateGigStore} from './helper/CreateGigStore';
+import {ErrorToast} from '../../components/ErrorToast';
 
 interface CreateGigsProps {
   title: string;
-  pricing: number;
+  price: number;
 }
 
 const initialValues: CreateGigsProps = {
   title: '',
-  pricing: 500,
+  price: 500,
 };
+
+interface createJobProps {
+  createGig: (values: any) => Promise<any>;
+}
 
 function CreateForm() {
   // category
   const [selectedCategory, setSelectedCategory] = React.useState<string>('');
   // job description
   const [gig_description, setGigDescription] = React.useState<string>('');
+
+  const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false);
 
   //images
   const [images, setImages] = React.useState<any>([]);
@@ -53,14 +63,111 @@ function CreateForm() {
     console.log('handleSheetChanges', index);
   }, []);
 
-  const handleCreateJob = (values: CreateGigsProps) => {
-    const newValues = {
-      ...values,
-      category: selectedCategory,
-      gig_description: gig_description,
-    };
-    console.log(newValues);
+  // async function imageUpload() {
+  //   console.log('hello to at');
+  //   try {
+  //     SuccessToast('Uploading Image');
+  //     const data = new FormData();
+  //     const imageUri = images; // Example image URI
+
+  //     // Read the file content
+  //     const response = await fetch(imageUri);
+  //     const blob = await response.blob();
+
+  //     // Append the file content to FormData
+  //     data.append('image', {
+  //       uri: imageUri,
+  //       type: 'image/jpeg', // Adjust the type according to your image type
+  //       name: 'image.jpg', // Adjust the file name as needed
+  //       blob,
+  //     });
+
+  //     // Send the FormData to the server
+  //     const uploadResponse = await fetch('http://192.168.18.204:8000/upload', {
+  //       method: 'POST',
+  //       body: data,
+  //       headers: {
+  //         'Content-Type': 'multipart/form-data',
+  //       },
+  //     });
+
+  //     const json = await uploadResponse.json();
+  //     console.log('Image upload response:', json);
+  //   } catch (err) {
+  //     console.error('Error during image upload:', err);
+  //   }
+  // }
+
+  // async function imageUpload() {
+  //   console.log('hello to at');
+  //   try {
+  //     var photo = {
+  //       uri: images,
+  //       type: 'image/jpeg',
+  //       name: 'photo.jpg',
+  //     };
+
+  //     console.log(images);
+
+  //     var body = new FormData();
+  //     body.append('image', photo);
+
+  //     // axios({
+  //     //   method: 'post',
+  //     //   url: 'http://192.168.18.204:8000/upload',
+  //     //   data: body,
+  //     //   headers: {
+  //     //     'content-type': 'multipart/form-data',
+  //     //     Accept: 'application/json',
+  //     //   },
+  //     // })
+  //     //   .then(result => {
+  //     //     console.log(result);
+  //     //     // setProfilePhoto(result.data.result.profilePic);
+  //     //     // window.location.reload();
+  //     //   })
+  //     //   .catch(error => console.error(error.message));
+  //     // const json = await response.json();
+  //     // console.log('Image upload response:', json);
+  //   } catch (err) {
+  //     console.error('Error during image upload:', err);
+  //   }
+  // }
+
+  const handleCreateJob = async (values: CreateGigsProps) => {
+    // imageUpload();
+    try {
+      const imagePaths = images?.map((image: any) => {
+        // Split the path by '/' and get the last part which contains the file name
+        const pathParts = image.path;
+        const fileName = pathParts;
+        return fileName;
+      });
+
+      const newValues = {
+        ...values,
+        category: selectedCategory,
+        gig_description: gig_description,
+        images: imagePaths,
+      };
+      console.log(newValues);
+      const response = await (
+        CreateGigStore.getState() as createJobProps
+      ).createGig(newValues);
+      if (response) {
+        SuccessToast('Job Created Successfully');
+        setIsSubmitting(true);
+      }
+    } catch (error: any) {
+      const errorMessage = error
+        .toString()
+        .replace('[Error: ', '')
+        .replace(']', '');
+      ErrorToast(errorMessage);
+    }
   };
+
+  const pickImage = () => {};
 
   return (
     <View className="w-[100%] py-5 bg-white flex items-center justify-center">
@@ -174,15 +281,15 @@ function CreateForm() {
                     style={{fontFamily: 'Montserrat-SemiBold'}}
                     placeholder="Enter price"
                     placeholderTextColor="#bdbebf"
-                    onChangeText={handleChange('pricing')}
-                    onBlur={handleBlur('pricing')}
-                    value={values.pricing.toString()}
+                    onChangeText={handleChange('price')}
+                    onBlur={handleBlur('price')}
+                    value={values.price.toString()}
                   />
-                  {errors.pricing && (
+                  {errors.price && (
                     <Text
                       className="text-red-500"
                       style={{fontFamily: 'Montserrat-Regular'}}>
-                      {errors.pricing}
+                      {errors.price}
                     </Text>
                   )}
                 </View>
@@ -197,15 +304,15 @@ function CreateForm() {
                   <TouchableOpacity
                     onPress={() => {
                       ImagePicker.openPicker({
-                        multiple: true,
                         mediaType: 'photo',
-                        maxMultipleCount: 5,
+                        multiple: true,
                       })
                         .then(images => {
                           if (images !== undefined && images.length > 0) {
                             let newImages = images.slice(0, 3);
                             setImages(newImages);
                           }
+                          setImages(images);
                         })
                         .catch(error => {
                           // Handle the error or simply log it
@@ -302,8 +409,7 @@ function CreateForm() {
                           fontFamily: 'Montserrat-Bold',
                           fontSize: responsiveFontSize(2.25),
                         }}>
-                        Create Job
-                        {/* {isSubmitting ? 'Signing Up...' : 'Sign Up'} */}
+                        {isSubmitting ? 'Creating ...' : 'Create Gig'}
                       </Text>
                     </View>
                   </TouchableOpacity>
