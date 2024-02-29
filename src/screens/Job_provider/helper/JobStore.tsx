@@ -6,7 +6,6 @@ export const JobStore = create(set => ({
   createJob: async (data: any) => {
     try {
       const response = await axios_auth.post('/job/createJob', data);
-      console.log(response.data);
       if (response.data.status === 'pending') {
         return response.data;
       }

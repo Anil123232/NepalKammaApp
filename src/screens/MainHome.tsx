@@ -24,7 +24,6 @@ const MainHome = ({navigation}: MainHomeScreenProps) => {
         useGlobalStore.getState() as mainHomeStoreState
       ).checkAuth();
 
-      console.log(response);
 
       // if response is true
       if (response) {

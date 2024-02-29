@@ -25,6 +25,7 @@ import {DrawerStackParamsListSeeker} from '../../navigation/DrawerStackSeeker';
 import {FetchJobStore} from './helper/FetchJobStore';
 import CardLoader from '../GlobalComponents/CardLoader';
 import Geolocation from 'react-native-geolocation-service';
+import {ErrorToast} from '../../components/ErrorToast';
 
 interface profileProps {
   navigation: DrawerNavigationProp<DrawerStackParamsListSeeker>;
@@ -38,7 +39,7 @@ export type userStateProps = {
   role: string;
   username: string;
   location: string;
-  profile_pic: string;
+  profilePic: any;
   title: string;
   skills: any[];
   isTick: boolean;
@@ -65,10 +66,15 @@ export interface JobDetails {
   skills_required: any[];
   title: string;
   updatedAt: string;
+  latitude: number;
+  longitude: number;
 }
 
 export interface JobData {
   job: JobDetails[];
+  totalPages?: number;
+  currentPage?: number;
+  nearBy: JobDetails[];
 }
 export const data: dataProps[] = [
   {
@@ -114,20 +120,34 @@ export const data: dataProps[] = [
 ];
 
 export interface getJobProps {
-  getJob: () => Promise<JobData>;
+  getJob: (page: number, limit: number) => Promise<JobData>;
+  getNearbyJob: (latitude: number, longitude: number) => Promise<JobData>;
 }
 
 export const initialJobData: JobData = {
   job: [],
+  totalPages: 1,
+  currentPage: 1,
+  nearBy: [],
 };
+
+export interface myLocationProps {
+  latitude: number;
+  longitude: number;
+}
 
 const Home = ({navigation}: profileProps) => {
   const user: userStateProps = useGlobalStore((state: any) => state.user);
-  console.log(user);
   const [currentTab, setCurrentTab] = React.useState<string>('Best Matches');
   const [selectedData, setSelectedData] = React.useState<any>(null);
   const [jobDetails, setJobDetails] = React.useState<JobData>(initialJobData);
+  const [nearByJobDetails, setNearByJobDetails] =
+    React.useState<JobData>(initialJobData);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
+  const [myLocation, setMyLocation] = React.useState<myLocationProps>({
+    latitude: 0,
+    longitude: 0,
+  });
 
   const Drawer = createDrawerNavigator();
 
@@ -147,24 +167,35 @@ const Home = ({navigation}: profileProps) => {
 
   //get all job details
   const getJobDetails = async () => {
-    const response = await (FetchJobStore.getState() as getJobProps).getJob();
+    const response = await (FetchJobStore.getState() as getJobProps).getJob(
+      1,
+      5,
+    );
     setJobDetails(response);
     setIsLoading(false);
   };
 
+  //get near by job
+  const getNearbyJob = async (latitude: number, longitude: number) => {
+    const response = await (
+      FetchJobStore.getState() as getJobProps
+    ).getNearbyJob(latitude, longitude);
+    setNearByJobDetails(response);
+    setIsLoading(false);
+  };
+
   useEffect(() => {
-    requestCameraPermission();
-    getJobDetails();
+    requestLocationPermission();
   }, []);
 
-  const requestCameraPermission = async () => {
+  const requestLocationPermission = async () => {
     try {
       const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         {
-          title: 'Cool Photo App Location Permission',
+          title: 'NepalKamma App Location Permission',
           message:
-            'Cool Photo App needs access to your Location ' +
+            'NepalKamma App needs access to your Location ' +
             'so you can take awesome pictures.',
           buttonNeutral: 'Ask Me Later',
           buttonNegative: 'Cancel',
@@ -174,7 +205,12 @@ const Home = ({navigation}: profileProps) => {
       if (granted === PermissionsAndroid.RESULTS.GRANTED) {
         Geolocation.getCurrentPosition(
           position => {
-            console.log(position);
+            setMyLocation({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            });
+            getJobDetails();
+            getNearbyJob(position.coords.latitude, position.coords.longitude);
           },
           error => {
             // See error code charts below.
@@ -185,11 +221,10 @@ const Home = ({navigation}: profileProps) => {
       } else {
         console.log('Location permission denied');
       }
-    } catch (err) {
-      console.warn(err);
+    } catch (err: any) {
+      ErrorToast(err.message);
     }
   };
-  
 
   return (
     <BottomSheetModalProvider>
@@ -339,8 +374,9 @@ const Home = ({navigation}: profileProps) => {
             {/* Near by Work */}
             {!isLoading && currentTab === 'Nearby' && (
               <FlatList
-                keyExtractor={item => item.id.toString()}
-                data={data.slice(0, 3)}
+                keyExtractor={item => item._id.toString()}
+                initialNumToRender={5}
+                data={nearByJobDetails?.nearBy?.slice(0, 5)}
                 renderItem={({item}) => <Cards data={item} user={user} />}
                 contentContainerStyle={{
                   paddingBottom: responsiveHeight(50),

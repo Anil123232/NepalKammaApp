@@ -25,6 +25,8 @@ import axios from 'axios';
 import {SuccessToast} from '../../components/SuccessToast';
 import {CreateGigStore} from './helper/CreateGigStore';
 import {ErrorToast} from '../../components/ErrorToast';
+import {launchImageLibrary} from 'react-native-image-picker';
+import {axios_auth} from '../../global/config';
 
 interface CreateGigsProps {
   title: string;
@@ -49,7 +51,7 @@ function CreateForm() {
   const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false);
 
   //images
-  const [images, setImages] = React.useState<any>([]);
+  const [images, setImages] = React.useState<any>([] || null);
 
   // ref
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
@@ -134,31 +136,106 @@ function CreateForm() {
   //   }
   // }
 
-  const handleCreateJob = async (values: CreateGigsProps) => {
-    // imageUpload();
+  // const handleCreateJob = async (values: any) => {
+  //   try {
+  //     if (!Array.isArray(images) || images.length === 0) {
+  //       return ErrorToast('Please add images');
+  //     }
+  //     console.log('hello from create job');
+
+  //     // const formData = new FormData();
+
+  //     // for (let i = 0; i < images.length; i++) {
+  //     //   // Append each image with the key "files"
+  //     //   formData.append(`files[]`, {
+  //     //     uri: images[i].uri,
+  //     //     type: images[i].type,
+  //     //     name: images[i].fileName,
+  //     //   });
+  //     // }
+
+  //     // Create newValues object
+  //     const newValues = {
+  //       ...values,
+  //       category: selectedCategory,
+  //       gig_description: gig_description,
+  //       images: images,
+  //     };
+
+  //     const response = await (CreateGigStore.getState() as any).createGig(
+  //       newValues,
+  //     );
+  //     if (response) {
+  //       SuccessToast('Gig Created Successfully');
+  //       setIsSubmitting(true);
+  //     }
+  //   } catch (error: any) {
+  //     console.log(error);
+  //     const errorMessage = error
+  //       .toString()
+  //       .replace('[Error: ', '')
+  //       .replace(']', '');
+  //     ErrorToast(errorMessage);
+  //   }
+  // };
+
+  const handleCreateJob = async (values: any) => {
+    setIsSubmitting(true);
     try {
-      const imagePaths = images?.map((image: any) => {
-        // Split the path by '/' and get the last part which contains the file name
-        const pathParts = image.path;
-        const fileName = pathParts;
-        return fileName;
+      if (!Array.isArray(images) || images.length === 0) {
+        setIsSubmitting(false);
+        return ErrorToast('Please add images');
+      }
+
+      if (
+        values.title === '' ||
+        values.price === 0 ||
+        selectedCategory === '' ||
+        gig_description === ''
+      ) {
+        setIsSubmitting(false);
+        return ErrorToast('All fields are required');
+      }
+
+      const formData = new FormData();
+
+      for (let i = 0; i < images.length; i++) {
+        // Append each image with the key "files"
+        formData.append(`files`, {
+          uri: images[i].uri,
+          type: images[i].type,
+          name: images[i].fileName,
+        });
+      }
+
+      const response = await axios_auth.post('/gig/upload-photo', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
+      if (response.status !== 201) {
+        setIsSubmitting(false);
+        ErrorToast('Failed to update profile picture');
+        // throw new Error('Failed to update profile picture');
+      }
+      SuccessToast('Photos updated successfully');
       const newValues = {
         ...values,
         category: selectedCategory,
         gig_description: gig_description,
-        images: imagePaths,
       };
-      console.log(newValues);
-      const response = await (
-        CreateGigStore.getState() as createJobProps
-      ).createGig(newValues);
-      if (response) {
-        SuccessToast('Job Created Successfully');
-        setIsSubmitting(true);
+
+      const response1 = await (CreateGigStore.getState() as any).createGig(
+        newValues,
+        response?.data?.imagesData._id,
+      );
+      if (response1) {
+        SuccessToast('Gig Created Successfully');
+        setIsSubmitting(false);
       }
     } catch (error: any) {
+      console.log(error);
       const errorMessage = error
         .toString()
         .replace('[Error: ', '')
@@ -167,7 +244,31 @@ function CreateForm() {
     }
   };
 
-  const pickImage = () => {};
+  const handleImagePicker = () => {
+    const options: any = {
+      title: 'Select Picture',
+      storageOptions: {
+        skipBackup: true,
+        path: 'images',
+      },
+      maxWidth: 500,
+      maxHeight: 500,
+      quality: 0.5,
+      selectionLimit: 3,
+      mediaType: 'photo',
+      includeBase64: false,
+    };
+    launchImageLibrary(options, response => {
+      if (response.didCancel) {
+        console.log('User cancelled image picker');
+      } else if (response.errorCode) {
+        console.log('ImagePicker Error: ', response.errorMessage);
+      } else if (response.assets && Array.isArray(response.assets)) {
+        const threeImages = response.assets.slice(0, 3);
+        setImages(threeImages);
+      }
+    });
+  };
 
   return (
     <View className="w-[100%] py-5 bg-white flex items-center justify-center">
@@ -301,27 +402,7 @@ function CreateForm() {
                     style={{fontFamily: 'Montserrat-Medium'}}>
                     Add Images
                   </Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      ImagePicker.openPicker({
-                        mediaType: 'photo',
-                        multiple: true,
-                      })
-                        .then(images => {
-                          if (images !== undefined && images.length > 0) {
-                            let newImages = images.slice(0, 3);
-                            setImages(newImages);
-                          }
-                          setImages(images);
-                        })
-                        .catch(error => {
-                          // Handle the error or simply log it
-                          console.log(
-                            'Image selection cancelled or error occurred:',
-                            error,
-                          );
-                        });
-                    }}>
+                  <TouchableOpacity onPress={() => handleImagePicker()}>
                     <View className="bg-[#effff8] rounded-md text-black px-2 py-4">
                       <Text
                         style={{fontFamily: 'Montserrat-SemiBold'}}
@@ -333,7 +414,7 @@ function CreateForm() {
                     </View>
                   </TouchableOpacity>
                 </View>
-                {images.length > 0 && (
+                {Array.isArray(images) && images.length > 0 && (
                   <View className="gap-y-2">
                     <View className="flex flex-row items-center gap-x-3">
                       <Text
@@ -353,8 +434,8 @@ function CreateForm() {
                     <ScrollView className="flex flex-row gap-x-2" horizontal>
                       {images.map((image: any) => (
                         <Image
-                          key={image.path}
-                          source={{uri: image.path}}
+                          key={image.uri}
+                          source={{uri: image.uri}}
                           style={{
                             width: responsiveWidth(25),
                             height: responsiveHeight(15),
@@ -409,7 +490,7 @@ function CreateForm() {
                           fontFamily: 'Montserrat-Bold',
                           fontSize: responsiveFontSize(2.25),
                         }}>
-                        {isSubmitting ? 'Creating ...' : 'Create Gig'}
+                        {isSubmitting ? 'Creating...' : 'Create Gig'}
                       </Text>
                     </View>
                   </TouchableOpacity>

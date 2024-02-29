@@ -55,8 +55,7 @@ const userData = [
 const BottomSheetCard = ({bottomSheetModalRef, data}: any) => {
   // Convert the single data into an array
   const dataArray = data ? [data] : [];
-
-  console.log(dataArray);
+  console.log(data);
 
   const {width} = useWindowDimensions();
 
@@ -115,11 +114,11 @@ const BottomSheetCard = ({bottomSheetModalRef, data}: any) => {
             {data?.images?.map((image: any) => (
               <View
                 style={{alignItems: 'center', backgroundColor: '#fff'}}
-                key={image.img}>
+                key={image?.url}>
                 <Image
                   style={{width: responsiveWidth(85), height: 200}}
                   // source={require('../../../assets/images/user-profile.jpg')}
-                  source={{uri: image}}
+                  source={{uri: image?.url}}
                 />
                 <Text className="text-black">Anil bhandari</Text>
               </View>

@@ -93,7 +93,6 @@ export const data: dataProps[] = [
 
 const Home = ({navigation}: logOutProps) => {
   const user: userStateProps = useGlobalStore((state: any) => state.user);
-  console.log(user);
   const [isPopular, setIsPopular] = React.useState<boolean>(true);
   const [selectedData, setSelectedData] = React.useState<any>(null);
   const [gigDetails, setgigDetails] = React.useState<GigData>(initialGigData);
@@ -120,7 +119,6 @@ const Home = ({navigation}: logOutProps) => {
     const response = await (FetchGigStore.getState() as getJobProps).getGig();
     setgigDetails(response);
     setIsLoading(false);
-    console.log(response);
   };
 
   useEffect(() => {

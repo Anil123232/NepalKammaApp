@@ -14,6 +14,7 @@ import ModalBox from './ModalBox';
 import {RootStackParamsList} from '../navigation/AppStack';
 import {Picker} from '@react-native-picker/picker';
 import {genderList} from '../screens/GlobalComponents/SkillsData';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 interface SignUpDetails {
   username: string;
@@ -58,6 +59,17 @@ const SignupForm = ({role, navigation}: SignupFormProps) => {
     email: '',
     timer: '',
   });
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState<boolean>(false);
+
+  const toggleShowPassword = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const toggleShowConfirmPassword = () => {
+    setShowConfirmPassword(!showConfirmPassword);
+  };
 
   // handle signup
   const handleSignup = async (values: SignUpDetails) => {
@@ -177,16 +189,31 @@ const SignupForm = ({role, navigation}: SignupFormProps) => {
                 style={{fontFamily: 'Montserrat-Medium'}}>
                 Password
               </Text>
-              <TextInput
-                className="bg-[#effff8] rounded-md text-black px-2"
-                style={{fontFamily: 'Montserrat-SemiBold'}}
-                placeholder="Enter your Password"
-                placeholderTextColor="#bdbebf"
-                secureTextEntry
-                onChangeText={handleChange('password')}
-                onBlur={handleBlur('password')}
-                value={values.password}
-              />
+              <View className="w-[100%] flex flex-row items-center">
+                <TextInput
+                  className="bg-[#effff8] rounded-md text-black px-2"
+                  style={{fontFamily: 'Montserrat-SemiBold', flex: 1}}
+                  placeholder="Enter your Password"
+                  placeholderTextColor="#bdbebf"
+                  secureTextEntry={!showPassword}
+                  onChangeText={handleChange('password')}
+                  onBlur={handleBlur('password')}
+                  value={values.password}
+                />
+                <TouchableOpacity
+                  className="bg-[#effff8] py-3"
+                  onPress={toggleShowPassword}>
+                  <Ionicons
+                    name={showPassword ? 'eye-off' : 'eye'}
+                    size={24}
+                    color="#bdbdbd"
+                    style={{
+                      marginLeft: 10,
+                      marginRight: responsiveWidth(5),
+                    }}
+                  />
+                </TouchableOpacity>
+              </View>
               {errors.password && (
                 <Text
                   className="text-red-500"
@@ -202,16 +229,32 @@ const SignupForm = ({role, navigation}: SignupFormProps) => {
                 style={{fontFamily: 'Montserrat-Medium'}}>
                 Confirm Password
               </Text>
-              <TextInput
-                className="bg-[#effff8] rounded-md text-black px-2"
-                style={{fontFamily: 'Montserrat-SemiBold'}}
-                placeholder="Confirm your Password"
-                placeholderTextColor="#bdbebf"
-                secureTextEntry
-                onChangeText={handleChange('confirmPassword')}
-                onBlur={handleBlur('confirmPassword')}
-                value={values.confirmPassword}
-              />
+              <View className="w-[100%] flex flex-row items-center">
+                <TextInput
+                  className="bg-[#effff8] rounded-md text-black px-2"
+                  style={{fontFamily: 'Montserrat-SemiBold', flex: 1}}
+                  placeholder="Confirm your Password"
+                  placeholderTextColor="#bdbebf"
+                  secureTextEntry={!showConfirmPassword}
+                  onChangeText={handleChange('confirmPassword')}
+                  onBlur={handleBlur('confirmPassword')}
+                  value={values.confirmPassword}
+                />
+                <TouchableOpacity
+                  className="bg-[#effff8] py-3"
+                  onPress={toggleShowConfirmPassword}>
+                  <Ionicons
+                    name={showConfirmPassword ? 'eye-off' : 'eye'}
+                    size={24}
+                    color="#bdbdbd"
+                    style={{
+                      marginLeft: 10,
+                      marginRight: responsiveWidth(5),
+                    }}
+                  />
+                </TouchableOpacity>
+              </View>
+
               {errors.confirmPassword && (
                 <Text
                   className="text-red-500"

@@ -35,7 +35,6 @@ const PeopleCard = ({data, navigation, route}: any) => {
       <View>
         <TouchableOpacity
           onPress={() => {
-            console.log('hitted');
             navigation.navigate('Other_Profile', {
               id: data?.id,
             });

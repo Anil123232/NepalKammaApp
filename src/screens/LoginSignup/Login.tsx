@@ -17,6 +17,7 @@ import {SuccessToast} from '../../components/SuccessToast';
 import {useUserContext} from '../../contexts/UserContext';
 import {useGlobalStore} from '../../global/store';
 import {RootStackParamsList} from '../../navigation/AppStack';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 interface LoginScreenProps {
   navigation: StackNavigationProp<RootStackParamsList>;
@@ -45,6 +46,13 @@ const Login = ({navigation}: LoginScreenProps) => {
 
   //  state
   const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
+
+  // for eye
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+
+  const toggleShowPassword = () => {
+    setShowPassword(!showPassword);
+  };
 
   const removeHandler = async () => {
     await removeItem('onboarding');
@@ -154,16 +162,31 @@ const Login = ({navigation}: LoginScreenProps) => {
                     style={{fontFamily: 'Montserrat-Medium'}}>
                     Password
                   </Text>
-                  <TextInput
-                    className="bg-[#effff8] rounded-md text-black"
-                    placeholder="Enter your password"
-                    style={{fontFamily: 'Montserrat-SemiBold'}}
-                    placeholderTextColor="#bdbebf"
-                    onChangeText={handleChange('password')}
-                    onBlur={handleBlur('password')}
-                    value={values.password}
-                    secureTextEntry
-                  />
+                  <View className="w-[100%] flex flex-row items-center">
+                    <TextInput
+                      className="bg-[#effff8] rounded-md text-black"
+                      placeholder="Enter your password"
+                      style={{fontFamily: 'Montserrat-SemiBold', flex: 1}}
+                      placeholderTextColor="#bdbebf"
+                      onChangeText={handleChange('password')}
+                      onBlur={handleBlur('password')}
+                      value={values.password}
+                      secureTextEntry={!showPassword}
+                    />
+                    <TouchableOpacity
+                      className="bg-[#effff8] py-3"
+                      onPress={toggleShowPassword}>
+                      <Ionicons
+                        name={showPassword ? 'eye-off' : 'eye'}
+                        size={24}
+                        color="#bdbdbd"
+                        style={{
+                          marginLeft: 10,
+                          marginRight: responsiveWidth(5),
+                        }}
+                      />
+                    </TouchableOpacity>
+                  </View>
                   {errors.password && (
                     <Text
                       className="text-red-500"

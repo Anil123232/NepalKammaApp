@@ -1,4 +1,4 @@
-import {View, Text} from 'react-native';
+import {View, Text, Button} from 'react-native';
 import {TouchableWithoutFeedback} from 'react-native-gesture-handler';
 import React, {useCallback, useEffect, useMemo, useRef} from 'react';
 import {responsiveHeight} from 'react-native-responsive-dimensions';
@@ -27,6 +27,10 @@ const Explore = ({navigation, route}: peopleProps) => {
   const [jobDetails, setJobDetails] = React.useState<JobData>(initialJobData);
   const [selectedData, setSelectedData] = React.useState<any>(null);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
+  const [loadedItems, setLoadedItems] = React.useState<number>(0);
+  const [currentPage, setCurrentPage] = React.useState<number>(1);
+  const [totalPages, setTotalPages] = React.useState<number>(1);
+  const [isFetchingMore, setIsFetchingMore] = React.useState<boolean>(false);
 
   // ref
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
@@ -43,15 +47,45 @@ const Explore = ({navigation, route}: peopleProps) => {
   }, []);
 
   //get all job details
-  const getJobDetails = async () => {
-    const response = await (FetchJobStore.getState() as getJobProps).getJob();
-    setJobDetails(response);
+  const getJobDetails = async (page: number, limit: number) => {
+    const response = await (FetchJobStore.getState() as getJobProps).getJob(
+      page,
+      limit,
+    );
+    setJobDetails(prevJob => ({
+      ...prevJob,
+      job: [...prevJob.job, ...response.job],
+    }));
+
+    if (response.totalPages !== undefined) {
+      setTotalPages(response.totalPages);
+    }
+    if (response.currentPage !== undefined) {
+      setCurrentPage(response.currentPage);
+    }
     setIsLoading(false);
   };
 
   useEffect(() => {
-    getJobDetails();
+    getJobDetails(1, 5);
   }, []);
+
+  const handleEndReached = () => {
+    if (!isFetchingMore && currentPage < totalPages) {
+      const nextPage = currentPage + 1;
+      setIsFetchingMore(true); // Set to true when starting to fetch more data
+      getJobDetails(nextPage, 5)
+        .then(() => setIsFetchingMore(false)) // Set to false when fetching is complete
+        .catch(error => {
+          console.error('Error fetching more data:', error);
+          setIsFetchingMore(false); // Make sure to set to false even in case of an error
+        });
+    }
+    console.log('hitted');
+  };
+
+  // console.log(loadedItems)
+  console.log(totalPages, currentPage);
 
   return (
     <BottomSheetModalProvider>
@@ -102,8 +136,8 @@ const Explore = ({navigation, route}: peopleProps) => {
           ) : (
             <FlatList
               keyExtractor={item => item._id.toString()}
-              initialNumToRender={7}
-              data={jobDetails?.job.slice(0, 7)}
+              // initialNumToRender={10}
+              data={jobDetails?.job}
               renderItem={({item}) => (
                 <TouchableWithoutFeedback
                   onPress={() => {
@@ -114,8 +148,17 @@ const Explore = ({navigation, route}: peopleProps) => {
                 </TouchableWithoutFeedback>
               )}
               contentContainerStyle={{
-                paddingBottom: responsiveHeight(50),
-              }}></FlatList>
+                paddingBottom: responsiveHeight(30),
+              }}
+              onEndReached={handleEndReached}
+              onEndReachedThreshold={0.1}
+              ListFooterComponent={() =>
+                isFetchingMore ? (
+                  <View style={{alignItems: 'center', paddingVertical: 10}}>
+                    <Text className="text-black">Loading...</Text>
+                  </View>
+                ) : null
+              }></FlatList>
           )}
 
           <BottomSheetModal
@@ -144,6 +187,9 @@ const Explore = ({navigation, route}: peopleProps) => {
             />
             {/* </View> */}
           </BottomSheetModal>
+          <View className="bg-color2 ">
+            <Text className="text-black">Load More</Text>
+          </View>
         </View>
       </View>
     </BottomSheetModalProvider>

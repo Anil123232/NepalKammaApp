@@ -95,6 +95,9 @@ function CreateForm() {
         payment_method: paymentMethods?.map((method: any) => method.name),
         category: selectedCategory,
         job_description: job_description,
+        location: locationName,
+        latitude: geometry.coordinates[1],
+        longitude: geometry.coordinates[0],
       };
       const response = await (JobStore.getState() as createJobProps).createJob(
         newValues,
@@ -111,9 +114,6 @@ function CreateForm() {
     }
     setIsSubmitting(false);
   };
-
-  console.log('from create job', geometry);
-  console.log('from create job', locationName)
 
   return (
     <View className="w-[100%] py-5 bg-white flex items-center justify-center">

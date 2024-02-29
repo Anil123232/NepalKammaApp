@@ -1,79 +1,22 @@
+// profile
+// job creation
+
 export const Skills_data = [
-  {
-    id: 1,
-    name: 'plumbing',
-    label: 'Plumbing',
-  },
-  {
-    id: 2,
-    name: 'electrical',
-    label: 'Electrical',
-  },
-  {
-    id: 3,
-    name: 'carpentry',
-    label: 'Carpentry',
-  },
-  {
-    id: 4,
-    name: 'masonry',
-    label: 'Masonry',
-  },
-  {
-    id: 5,
-    name: 'painting',
-    label: 'Painting',
-  },
-  {
-    id: 6,
-    name: 'welding',
-    label: 'Welding',
-  },
-  {
-    id: 7,
-    name: 'gardening',
-    label: 'Gardening',
-  },
-  {
-    id: 8,
-    name: 'cleaning',
-    label: 'Cleaning',
-  },
-  {
-    id: 9,
-    name: 'cooking',
-    label: 'Cooking',
-  },
-  {
-    id: 10,
-    name: 'driving',
-    label: 'Driving',
-  },
-  {
-    id: 11,
-    name: 'tailoring',
-    label: 'Tailoring',
-  },
-  {
-    id: 12,
-    name: 'beauty',
-    label: 'Beauty',
-  },
-  {
-    id: 13,
-    name: 'farming',
-    label: 'Farming',
-  },
-  {
-    id: 14,
-    name: 'fishing',
-    label: 'Fishing',
-  },
-  {
-    id: 15,
-    name: 'others',
-    label: 'Others',
-  },
+  {id: 1, name: 'home_services', label: 'Home Services'},
+  {id: 2, name: 'appliance_repair', label: 'Appliance Repair'},
+  {id: 3, name: 'automotive', label: 'Automotive'},
+  {id: 4, name: 'business', label: 'Business'},
+  {id: 5, name: 'childcare', label: 'Childcare'},
+  {id: 6, name: 'construction', label: 'Construction'},
+  {id: 7, name: 'computer_services', label: 'Computer Services'},
+  {id: 8, name: 'teaching', label: 'Teaching'},
+  {id: 9, name: 'delivery', label: 'Delivery'},
+  {id: 10, name: 'electrical', label: 'Electrical'},
+  {id: 11, name: 'farming', label: 'Farming'},
+  {id: 12, name: 'gardening', label: 'Gardening'},
+  {id: 13, name: 'general_labor', label: 'General Labor'},
+  {id: 14, name: 'maintenance', label: 'Maintenance'},
+  {id: 15, name: 'pet_services', label: 'Pet Services'},
 ];
 
 export const payment_method = [
@@ -107,64 +50,25 @@ export const genderList = [
 ];
 
 export const category = [
-  {
-    id: 1,
-    name: 'plumbing',
-  },
-  {
-    id: 2,
-    name: 'electrical',
-  },
-  {
-    id: 3,
-    name: 'carpentry',
-  },
-  {
-    id: 4,
-    name: 'masonry',
-  },
-  {
-    id: 5,
-    name: 'painting',
-  },
-  {
-    id: 6,
-    name: 'welding',
-  },
-  {
-    id: 7,
-    name: 'gardening',
-  },
-  {
-    id: 8,
-    name: 'cleaning',
-  },
-  {
-    id: 9,
-    name: 'cooking',
-  },
-  {
-    id: 10,
-    name: 'driving',
-  },
-  {
-    id: 11,
-    name: 'tailoring',
-  },
-  {
-    id: 12,
-    name: 'beauty',
-  },
-  {
-    id: 13,
-    name: 'farming',
-  },
-  {
-    id: 14,
-    name: 'fishing',
-  },
-  {
-    id: 15,
-    name: 'others',
-  },
+  {id: 1, name: 'home_services'},
+  {id: 2, name: 'repairs'},
+  {id: 3, name: 'automotive'},
+  {id: 4, name: 'business'},
+  {id: 5, name: 'childcare'},
+  {id: 6, name: 'construction'},
+  {id: 7, name: 'computer_it'},
+  {id: 8, name: 'education_training'},
+  {id: 9, name: 'labor'},
+  {id: 10, name: 'gardening_farming'},
 ];
+
+// home_services: cleaning, cooking, etc
+// repairs: appliances, electrical, etc
+// automotive
+// business: delivery, services
+// childcare
+// construction
+// computer_it
+// education_training: tutoring, teaching
+// labor: general tasks & errands
+// gardening_farming
