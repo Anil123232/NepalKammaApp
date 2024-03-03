@@ -1,11 +1,10 @@
 import {create} from 'zustand';
 import {axios_auth} from '../../../global/config';
 
-export const FetchJobStore = create(set => ({
-  jobDetails: [],
-  getJob: async (page: number, limit: number) => {
+export const MessageStore = create(set => ({
+  createConversation: async (data: any) => {
     try {
-      const response = await axios_auth.get(`/job?page=${page}&limit=${limit}`);
+      const response = await axios_auth.post(`/message/conversation`, data);
       if (response.status === 200) {
         return response.data;
       }
@@ -18,11 +17,9 @@ export const FetchJobStore = create(set => ({
       }
     }
   },
-  getNearbyJob: async (latitude: number, longitude: number) => {
+  getAllConversation: async () => {
     try {
-      const response = await axios_auth.get(
-        `/job/getNearbyJob/${latitude}/${longitude}`,
-      );
+      const response = await axios_auth.get(`/message/getConversation`);
       if (response.status === 200) {
         return response.data;
       }
@@ -35,9 +32,9 @@ export const FetchJobStore = create(set => ({
       }
     }
   },
-  getJobRecommendation: async () => {
+  createMessage: async (data: any) => {
     try {
-      const response = await axios_auth.get(`/job/getRecommendedJob`);
+      const response = await axios_auth.post(`/message/createMessage`, data);
       if (response.status === 200) {
         return response.data;
       }
@@ -50,5 +47,21 @@ export const FetchJobStore = create(set => ({
       }
     }
   },
-  setJobDetails: (jobDetails: any) => set(() => ({jobDetails})),
+  getAllMessages: async (id: string) => {
+    //id --> conversation id
+    try {
+        console.log("hitted")
+      const response = await axios_auth.get(`/message/messagesCombo/${id}`);
+      if (response.status === 200) {
+        return response.data;
+      }
+      return [];
+    } catch (error: any) {
+      if (error.response) {
+        throw new Error(error.response.data.message);
+      } else {
+        throw new Error(error.message);
+      }
+    }
+  },
 }));

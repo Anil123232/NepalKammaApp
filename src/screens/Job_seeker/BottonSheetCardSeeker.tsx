@@ -19,43 +19,21 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import Review from '../GlobalComponents/Review';
 import RenderHTML, {defaultSystemFonts} from 'react-native-render-html';
 import {systemFonts} from '../GlobalComponents/Cards';
+import {MessageStore} from './helper/MessageStore';
+import {userStateProps} from './Home';
+import {useGlobalStore} from '../../global/store';
 
-const userData = [
-  {
-    img: 'https://randomuser.me/api/portraits/men/81.jpg',
-    name: 'Maurice Davis',
-  },
-  {
-    img: 'https://randomuser.me/api/portraits/women/20.jpg',
-    name: 'Bernice Alvarez',
-  },
-  {
-    img: 'https://randomuser.me/api/portraits/women/19.jpg',
-    name: 'Jennie Barnett',
-  },
-  {
-    img: 'https://randomuser.me/api/portraits/men/55.jpg',
-    name: 'Matthew Wagner',
-  },
-  {
-    img: 'https://randomuser.me/api/portraits/men/71.jpg',
-    name: 'Christian Wilson',
-  },
-  {
-    img: 'https://randomuser.me/api/portraits/women/21.jpg',
-    name: 'Sophia Fernandez',
-  },
-  {
-    img: 'https://randomuser.me/api/portraits/women/42.jpg',
-    name: 'Sylvia Lynch',
-  },
-];
-
-const BottonSheetCardSeeker = ({bottomSheetModalRef, data}: any) => {
+const BottonSheetCardSeeker = ({
+  bottomSheetModalRef,
+  data,
+  navigation,
+}: any) => {
+  const user: userStateProps = useGlobalStore((state: any) => state.user);
   // Convert the single data into an array
   const dataArray = data ? [data] : [];
 
-  console.log(dataArray);
+  //is applying state
+  const [isApplying, setIsApplying] = useState<boolean>(false);
 
   const {width} = useWindowDimensions();
 
@@ -63,6 +41,45 @@ const BottonSheetCardSeeker = ({bottomSheetModalRef, data}: any) => {
     let html = `<p style="color: black;">${data?.job_description}</p>`;
     html = html.replace(/\n/g, '<br/>');
     return html;
+  };
+
+  // send message handler function
+  const sendMessageHandler = async (conversationId: string) => {
+    const newValues = {
+      conversationId: conversationId,
+      msg: `Hello, I am interested in your job [${data?.title}]. Can we discuss more about it?`,
+    };
+    const response = await (MessageStore.getState() as any).createMessage(
+      newValues,
+    );
+    setIsApplying(false);
+    if (response) {
+      // getAllConversation();
+      // getAllMessages(conversationId);
+      console.log(response);
+      navigation.navigate('Actual_Message', {
+        conversation_id: conversationId,
+      });
+    }
+  };
+
+  const createConversation = async () => {
+    const newValues = {
+      senderId: user._id,
+      receiverId: data?.postedBy?._id,
+    };
+    const response = await (MessageStore.getState() as any).createConversation(
+      newValues,
+    );
+    if (response) {
+      sendMessageHandler(response?.conversation._id.toString());
+    }
+  };
+
+  // apply job handler function
+  const applyJobHandler = () => {
+    setIsApplying(true);
+    createConversation();
   };
 
   const renderItem = ({item}: any) => (
@@ -243,14 +260,14 @@ const BottonSheetCardSeeker = ({bottomSheetModalRef, data}: any) => {
             For more Details
           </Text>
           <View className="flex flex-row pt-2 items-center justify-around">
-            <TouchableOpacity>
+            <TouchableOpacity onPress={applyJobHandler}>
               <Text
                 className="text-white py-2 px-5 bg-color2 rounded-md"
                 style={{
                   fontFamily: 'Montserrat-SemiBold',
                   fontSize: responsiveFontSize(1.75),
                 }}>
-                Apply Now
+                {isApplying ? 'Applying...' : 'Apply Now'}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity>
@@ -358,11 +375,7 @@ const BottonSheetCardSeeker = ({bottomSheetModalRef, data}: any) => {
       </View>
       <FlatList
         data={dataArray}
-        // keyExtractor={(item) => item.id.toString()} // or item.whatever depending on your data structure
-        // keyExtractor={item => item.id.toString()}
-        // initialNumToRender={1}
-        // data={""}
-        renderItem={renderItem}
+        renderItem={item => renderItem(item)}
         contentContainerStyle={{
           paddingBottom: responsiveHeight(10),
         }}></FlatList>

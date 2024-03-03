@@ -21,38 +21,8 @@ import Review from '../GlobalComponents/Review';
 import RenderHTML from 'react-native-render-html';
 import {systemFonts} from '../GlobalComponents/Cards';
 
-const userData = [
-  {
-    img: 'https://randomuser.me/api/portraits/men/81.jpg',
-    name: 'Maurice Davis',
-  },
-  {
-    img: 'https://randomuser.me/api/portraits/women/20.jpg',
-    name: 'Bernice Alvarez',
-  },
-  {
-    img: 'https://randomuser.me/api/portraits/women/19.jpg',
-    name: 'Jennie Barnett',
-  },
-  {
-    img: 'https://randomuser.me/api/portraits/men/55.jpg',
-    name: 'Matthew Wagner',
-  },
-  {
-    img: 'https://randomuser.me/api/portraits/men/71.jpg',
-    name: 'Christian Wilson',
-  },
-  {
-    img: 'https://randomuser.me/api/portraits/women/21.jpg',
-    name: 'Sophia Fernandez',
-  },
-  {
-    img: 'https://randomuser.me/api/portraits/women/42.jpg',
-    name: 'Sylvia Lynch',
-  },
-];
 
-const BottomSheetCard = ({bottomSheetModalRef, data}: any) => {
+const BottomSheetCard = ({bottomSheetModalRef, data, navigation}: any) => {
   // Convert the single data into an array
   const dataArray = data ? [data] : [];
   console.log(data);

@@ -73,12 +73,12 @@ const Explore = ({navigation, route}: peopleProps) => {
   const handleEndReached = () => {
     if (!isFetchingMore && currentPage < totalPages) {
       const nextPage = currentPage + 1;
-      setIsFetchingMore(true); // Set to true when starting to fetch more data
+      setIsFetchingMore(true);
       getJobDetails(nextPage, 5)
-        .then(() => setIsFetchingMore(false)) // Set to false when fetching is complete
+        .then(() => setIsFetchingMore(false))
         .catch(error => {
           console.error('Error fetching more data:', error);
-          setIsFetchingMore(false); // Make sure to set to false even in case of an error
+          setIsFetchingMore(false);
         });
     }
     console.log('hitted');
@@ -150,6 +150,7 @@ const Explore = ({navigation, route}: peopleProps) => {
               contentContainerStyle={{
                 paddingBottom: responsiveHeight(30),
               }}
+              showsVerticalScrollIndicator={false}
               onEndReached={handleEndReached}
               onEndReachedThreshold={0.1}
               ListFooterComponent={() =>
@@ -184,6 +185,7 @@ const Explore = ({navigation, route}: peopleProps) => {
             <BottonSheetCardSeeker
               bottomSheetModalRef={bottomSheetModalRef}
               data={selectedData}
+              navigation={navigation}
             />
             {/* </View> */}
           </BottomSheetModal>

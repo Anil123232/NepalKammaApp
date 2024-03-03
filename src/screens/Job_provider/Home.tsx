@@ -16,9 +16,12 @@ import {BottomSheetModal, BottomSheetModalProvider} from '@gorhom/bottom-sheet';
 import BottomSheetCard from './BottomSheetCard';
 import {FetchGigStore} from './helper/FetchGigStore';
 import CardLoader from '../GlobalComponents/CardLoader';
+import {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
+import {BottomStackParamsList} from '../../navigation/ButtonNavigator';
 
 interface logOutProps {
   navigation: StackNavigationProp<RootStackParamsList>;
+  bottomNavigation: BottomTabNavigationProp<BottomStackParamsList>;
 }
 
 export type userStateProps = {
@@ -91,7 +94,7 @@ export const data: dataProps[] = [
   },
 ];
 
-const Home = ({navigation}: logOutProps) => {
+const Home = ({navigation, bottomNavigation}: logOutProps) => {
   const user: userStateProps = useGlobalStore((state: any) => state.user);
   const [isPopular, setIsPopular] = React.useState<boolean>(true);
   const [selectedData, setSelectedData] = React.useState<any>(null);
@@ -228,7 +231,9 @@ const Home = ({navigation}: logOutProps) => {
                 contentContainerStyle={{
                   paddingBottom: responsiveHeight(50),
                   paddingTop: responsiveHeight(2),
-                }}></FlatList>
+                }}
+                showsVerticalScrollIndicator={false}
+                ></FlatList>
             )}
 
             {!isLoading && !isPopular && (
@@ -248,7 +253,9 @@ const Home = ({navigation}: logOutProps) => {
                 contentContainerStyle={{
                   paddingBottom: responsiveHeight(50),
                   paddingTop: responsiveHeight(2),
-                }}></FlatList>
+                }}
+                showsVerticalScrollIndicator={false}
+                ></FlatList>
             )}
             <BottomSheetModal
               ref={bottomSheetModalRef}
@@ -273,6 +280,7 @@ const Home = ({navigation}: logOutProps) => {
               <BottomSheetCard
                 bottomSheetModalRef={bottomSheetModalRef}
                 data={selectedData}
+                navigation={bottomNavigation}
               />
               {/* </View> */}
             </BottomSheetModal>

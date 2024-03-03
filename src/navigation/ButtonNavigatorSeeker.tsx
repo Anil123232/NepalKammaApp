@@ -35,13 +35,14 @@ const ButtonNavigatorSeeker = () => {
       }}>
       <Tab.Screen
         name="Home_bottom"
-        component={JobSeeker}
+        // component={JobSeeker}
         options={{
           tabBarIcon: ({color}) => (
             <Ionicons name="home" size={25} color={color} />
           ),
-        }}
-      />
+        }}>
+        {props => <JobSeeker {...props} bottomNavigation={props.navigation} />}
+      </Tab.Screen>
       <Tab.Screen
         name="explore"
         component={Explore}

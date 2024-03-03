@@ -26,9 +26,12 @@ import {FetchJobStore} from './helper/FetchJobStore';
 import CardLoader from '../GlobalComponents/CardLoader';
 import Geolocation from 'react-native-geolocation-service';
 import {ErrorToast} from '../../components/ErrorToast';
+import {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
+import {BottomStackParamsList} from '../../navigation/ButtonNavigatorSeeker';
 
 interface profileProps {
   navigation: DrawerNavigationProp<DrawerStackParamsListSeeker>;
+  bottomNavigation: BottomTabNavigationProp<BottomStackParamsList>;
 }
 
 export type userStateProps = {
@@ -75,6 +78,7 @@ export interface JobData {
   totalPages?: number;
   currentPage?: number;
   nearBy: JobDetails[];
+  recommendJobsList?: JobDetails[];
 }
 export const data: dataProps[] = [
   {
@@ -122,6 +126,7 @@ export const data: dataProps[] = [
 export interface getJobProps {
   getJob: (page: number, limit: number) => Promise<JobData>;
   getNearbyJob: (latitude: number, longitude: number) => Promise<JobData>;
+  getJobRecommendation: () => Promise<JobData>;
 }
 
 export const initialJobData: JobData = {
@@ -129,6 +134,7 @@ export const initialJobData: JobData = {
   totalPages: 1,
   currentPage: 1,
   nearBy: [],
+  recommendJobsList: [],
 };
 
 export interface myLocationProps {
@@ -136,12 +142,14 @@ export interface myLocationProps {
   longitude: number;
 }
 
-const Home = ({navigation}: profileProps) => {
+const Home = ({navigation, bottomNavigation}: profileProps) => {
   const user: userStateProps = useGlobalStore((state: any) => state.user);
   const [currentTab, setCurrentTab] = React.useState<string>('Best Matches');
   const [selectedData, setSelectedData] = React.useState<any>(null);
   const [jobDetails, setJobDetails] = React.useState<JobData>(initialJobData);
   const [nearByJobDetails, setNearByJobDetails] =
+    React.useState<JobData>(initialJobData);
+  const [recommendedJob, setRecommendedJob] =
     React.useState<JobData>(initialJobData);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [myLocation, setMyLocation] = React.useState<myLocationProps>({
@@ -172,7 +180,7 @@ const Home = ({navigation}: profileProps) => {
       5,
     );
     setJobDetails(response);
-    setIsLoading(false);
+    // setIsLoading(false);
   };
 
   //get near by job
@@ -181,7 +189,14 @@ const Home = ({navigation}: profileProps) => {
       FetchJobStore.getState() as getJobProps
     ).getNearbyJob(latitude, longitude);
     setNearByJobDetails(response);
-    setIsLoading(false);
+  };
+
+  //get recommended job
+  const getRecommendedJob = async () => {
+    const response = await (
+      FetchJobStore.getState() as getJobProps
+    ).getJobRecommendation();
+    setRecommendedJob(response);
   };
 
   useEffect(() => {
@@ -194,9 +209,7 @@ const Home = ({navigation}: profileProps) => {
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         {
           title: 'NepalKamma App Location Permission',
-          message:
-            'NepalKamma App needs access to your Location ' +
-            'so you can take awesome pictures.',
+          message: 'NepalKamma App needs access to your Location ',
           buttonNeutral: 'Ask Me Later',
           buttonNegative: 'Cancel',
           buttonPositive: 'OK',
@@ -211,6 +224,8 @@ const Home = ({navigation}: profileProps) => {
             });
             getJobDetails();
             getNearbyJob(position.coords.latitude, position.coords.longitude);
+            getRecommendedJob();
+            setIsLoading(false);
           },
           error => {
             // See error code charts below.
@@ -344,8 +359,7 @@ const Home = ({navigation}: profileProps) => {
             {!isLoading && currentTab === 'Best Matches' && (
               <FlatList
                 keyExtractor={item => item._id.toString()}
-                initialNumToRender={5}
-                data={jobDetails?.job?.slice(0, 5)}
+                data={recommendedJob?.recommendJobsList?.slice(0, 5)}
                 renderItem={({item}) => (
                   <TouchableWithoutFeedback
                     onPress={() => {
@@ -355,10 +369,32 @@ const Home = ({navigation}: profileProps) => {
                     <Cards data={item} user={user} />
                   </TouchableWithoutFeedback>
                 )}
+                ListEmptyComponent={() => (
+                  // Render this component when there's no data
+                  <View style={{paddingBottom: responsiveHeight(25)}}>
+                    <Text
+                      className="text-red-500"
+                      style={{
+                        fontFamily: 'Montserrat-Bold',
+                        fontSize: responsiveFontSize(1.75),
+                      }}>
+                      No recommended jobs available
+                    </Text>
+                    <Text
+                      className="text-color2"
+                      style={{
+                        fontFamily: 'Montserrat-Bold',
+                        fontSize: responsiveFontSize(1.75),
+                      }}>
+                      Complete your profile to get recommended jobs
+                    </Text>
+                  </View>
+                )}
                 contentContainerStyle={{
                   paddingBottom: responsiveHeight(50),
                   paddingTop: responsiveHeight(1),
-                }}></FlatList>
+                }}
+                showsVerticalScrollIndicator={false}></FlatList>
             )}
             {/* Most Recent  */}
             {!isLoading && currentTab === 'Most Recent' && (
@@ -369,7 +405,8 @@ const Home = ({navigation}: profileProps) => {
                 contentContainerStyle={{
                   paddingBottom: responsiveHeight(50),
                   paddingTop: responsiveHeight(1),
-                }}></FlatList>
+                }}
+                showsVerticalScrollIndicator={false}></FlatList>
             )}
             {/* Near by Work */}
             {!isLoading && currentTab === 'Nearby' && (
@@ -381,7 +418,8 @@ const Home = ({navigation}: profileProps) => {
                 contentContainerStyle={{
                   paddingBottom: responsiveHeight(50),
                   paddingTop: responsiveHeight(1),
-                }}></FlatList>
+                }}
+                showsVerticalScrollIndicator={false}></FlatList>
             )}
 
             <BottomSheetModal
@@ -407,6 +445,7 @@ const Home = ({navigation}: profileProps) => {
               <BottonSheetCardSeeker
                 bottomSheetModalRef={bottomSheetModalRef}
                 data={selectedData}
+                navigation={bottomNavigation}
               />
               {/* </View> */}
             </BottomSheetModal>

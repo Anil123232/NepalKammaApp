@@ -7,11 +7,11 @@ import {
 
 const Conversation = ({data}: any) => {
   return (
-    <View className="flex flex-row gap-x-5 py-2">
+    <View className="flex pl-5 flex-row gap-x-5 py-2 rounded-md border-b-[1.5px] border-[#e5e8e9]">
       {/* image  */}
       <View>
         <Image
-          source={{uri: 'https://randomuser.me/api/portraits/men/11.jpg'}}
+          source={{uri: data?.conversation[0]?.profilePic.url}}
           style={{
             width: responsiveHeight(8),
             height: responsiveHeight(8),
@@ -22,14 +22,22 @@ const Conversation = ({data}: any) => {
       {/* other things */}
       <View className="flex flex-col justify-center gap-y-1">
         {/* name  */}
-        <View>
+        <View className="flex flex-row gap-x-20">
           <Text
             className="text-black"
             style={{
               fontFamily: 'Montserrat-SemiBold',
               fontSize: responsiveFontSize(2),
             }}>
-            {data?.sellerName}
+            {data?.conversation[0]?.username}
+          </Text>
+          <Text
+            className="text-color2"
+            style={{
+              fontFamily: 'Montserrat-SemiBold',
+              fontSize: responsiveFontSize(1.5),
+            }}>
+            Online
           </Text>
         </View>
         {/* message  */}
@@ -40,7 +48,9 @@ const Conversation = ({data}: any) => {
               fontFamily: 'Montserrat-Bold',
               fontSize: responsiveFontSize(1.75),
             }}>
-            {data?.sellerDescription}
+            {data?.conversation[0]?.title
+              ? data?.conversation[0]?.title
+              : 'Job Provider'}
           </Text>
         </View>
       </View>

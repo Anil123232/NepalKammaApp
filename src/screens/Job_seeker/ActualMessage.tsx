@@ -8,7 +8,7 @@ import {
   StyleSheet,
   Dimensions,
 } from 'react-native';
-import React from 'react';
+import React, {useEffect} from 'react';
 import {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
 import {BottomStackParamsList} from '../../navigation/ButtonNavigatorSeeker';
 import {
@@ -16,107 +16,92 @@ import {
   responsiveHeight,
 } from 'react-native-responsive-dimensions';
 import IonIcons from 'react-native-vector-icons/Ionicons';
+import {MessageStore} from './helper/MessageStore';
+import {useGlobalStore} from '../../global/store';
+import {ErrorToast} from '../../components/ErrorToast';
+import {useIsFocused} from '@react-navigation/native';
 
 interface ActualMessageProps {
   navigation: BottomTabNavigationProp<BottomStackParamsList>;
   route: {params: {conversation_id: string}};
 }
 
-const data = [
-  {
-    id: 1,
-    sender: 'John Doe',
-    message: 'How are you?',
-  },
-  {
-    id: 2,
-    sender: 'Jane Smith',
-    message: 'Can you do it?',
-  },
-  {
-    id: 3,
-    sender: 'Alex Johnson',
-    message: 'I am fine, and what about you brother?',
-  },
-  {
-    id: 4,
-    sender: 'Emily Davis',
-    message: 'Interior Designer',
-  },
-  {
-    id: 5,
-    sender: 'Chris Anderson',
-    message: 'Jewelry Craftsman',
-  },
-  {
-    id: 6,
-    sender: 'Mia Robinson',
-    message: 'Digital Artist',
-  },
-  {
-    id: 7,
-    sender: 'David Taylor',
-    message: 'Industrial Designer',
-  },
-  {
-    id: 8,
-    sender: 'Sophia Brown',
-    message: 'Photographer',
-  },
-  {
-    id: 9,
-    sender: 'Olivia White',
-    message: 'Fashion Designer',
-  },
-  {
-    id: 10,
-    sender: 'James Wilson',
-    message:
-      'I am fine, and what about you brother? asdfhs faskjdfh asdjf sldkfj skldjf klsadfj slkdjf slkdfj klsdjf klsadjf skladjf swdf',
-  },
-  {
-    id: 11,
-    sender: 'Emily Davis',
-    message: 'Interior Designer',
-  },
-  {
-    id: 12,
-    sender: 'Chris Anderson',
-    message: 'Jewelry Craftsman',
-  },
-  {
-    id: 13,
-    sender: 'Mia Robinson',
-    message: 'Digital Artist',
-  },
-  {
-    id: 14,
-    sender: 'David Taylor',
-    message: 'Industrial Designer',
-  },
-  {
-    id: 15,
-    sender: 'Sophia Brown',
-    message: 'Photographer',
-  },
-  {
-    id: 16,
-    sender: 'Olivia White',
-    message: 'Fashion Designer',
-  },
-  {
-    id: 17,
-    sender: 'James Wilson',
-    message: 'I am fine, and what about you brother?',
-  },
-  {
-    id: 18,
-    sender: 'Emily Davis',
-    message: 'Interior Designer',
-  },
-];
+interface User {
+  _id: string;
+  profilePic: {
+    public_id: string;
+    url: string;
+  };
+  username: string;
+}
+
+interface Message {
+  __v: number;
+  _id: string;
+  conversationId: string;
+  createdAt: string;
+  msg: string;
+  senderId: string;
+  updatedAt: string;
+}
+
+interface ApiResponse {
+  otheruser: User;
+  result: Message[];
+}
 
 const ActualMessage = ({navigation, route}: ActualMessageProps) => {
+  const isFocused = useIsFocused();
+  const [messages, setMessages] = React.useState<ApiResponse[]>([]);
+  const [otherUser, setOtherUser] = React.useState<User>({} as User);
+  const [message, setMessage] = React.useState<string>('');
+
+  useEffect(() => {
+    const fetchMessages = async () => {
+      try {
+        const response = await (MessageStore.getState() as any).getAllMessages(
+          route.params.conversation_id,
+        );
+        setMessages(response.result);
+        setOtherUser(response.otheruser);
+      } catch (error: any) {
+        const errorMessage = error
+          .toString()
+          .replace('[Error: ', '')
+          .replace(']', '');
+        ErrorToast(errorMessage);
+      }
+    };
+
+    if (isFocused && route.params?.conversation_id) {
+      fetchMessages();
+    }
+  }, [isFocused, route.params?.conversation_id]);
+
+  const sendMessageHandler = async (e: any) => {
+    try {
+      e.preventDefault();
+      const data = {
+        conversationId: route.params?.conversation_id,
+        msg: message,
+      };
+
+      const response = await (MessageStore.getState() as any).createMessage(
+        data,
+      );
+      if (response) {
+        setMessage('');
+        setMessages(prev => [...prev, response?.messages]);
+      }
+    } catch (error: any) {
+      const errorMessage = error
+        .toString()
+        .replace('[Error: ', '')
+        .replace(']', '');
+      ErrorToast(errorMessage);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -125,21 +110,23 @@ const ActualMessage = ({navigation, route}: ActualMessageProps) => {
           <IonIcons name="chevron-back-sharp" size={30} color="gray" />
         </TouchableOpacity>
         <View style={styles.profile}>
-          <Image
-            source={{uri: 'https://randomuser.me/api/portraits/men/11.jpg'}}
-            style={styles.profileImage}
-          />
+          {otherUser?.profilePic?.url && (
+            <Image
+              source={{uri: otherUser?.profilePic?.url}}
+              style={styles.profileImage}
+            />
+          )}
           <Text style={styles.profileName} className="text-black">
-            Anil Bhandari
+            {otherUser?.username}
           </Text>
         </View>
         <IonIcons name="information-circle-outline" size={30} color="black" />
       </View>
       <FlatList
         style={styles.messagesContainer}
-        keyExtractor={item => item.id.toString()}
-        data={data}
-        renderItem={({item}) => <Messages data={item} />}
+        keyExtractor={(item, index) => index.toString()}
+        data={messages}
+        renderItem={({item}) => <Messages data={item} otheruser={otherUser} />}
         contentContainerStyle={{
           paddingBottom: responsiveHeight(5),
           paddingTop: responsiveHeight(2),
@@ -150,10 +137,12 @@ const ActualMessage = ({navigation, route}: ActualMessageProps) => {
           placeholder="Type a message..."
           style={styles.textInput}
           placeholderTextColor={'gray'}
-          //   value={message}
-          //   onChangeText={setMessage}
+          value={message}
+          onChangeText={text => setMessage(text)}
         />
-        <TouchableOpacity style={styles.sendButton}>
+        <TouchableOpacity
+          style={styles.sendButton}
+          onPress={sendMessageHandler}>
           <IonIcons name="send" size={24} color="white" />
         </TouchableOpacity>
       </View>
@@ -161,29 +150,26 @@ const ActualMessage = ({navigation, route}: ActualMessageProps) => {
   );
 };
 
-const Messages = ({data}: any) => {
+const Messages = ({data, otheruser}: any) => {
+  const user: any = useGlobalStore((state: any) => state.user);
   const screenWidth = Dimensions.get('window').width;
   const maxWidth = screenWidth * 0.8;
 
   return (
     <>
       {/* Message content */}
-      {data && data.sender === 'Emily Davis' ? (
+      {data && data?.senderId === user?._id ? (
         <>
-          <View
-            style={{
-              padding: responsiveHeight(1.5),
-            }}
-            className="w-[100%] flex items-end">
+          <View style={styles.messageOther} className="w-[100%] flex items-end">
             <View style={styles.messageContent} className="">
               <View
                 style={[styles.messageTextContainer, {maxWidth}]}
-                className={`bg-blue-200 flex flex-col gap-y-1 ${
-                  data?.message.length > 38 && 'w-[80%]'
+                className={`bg-color2 flex flex-col gap-y-1 ${
+                  data?.msg.length > 38 && 'w-[80%]'
                 }`}>
-                <Text style={styles.messageText}>{data?.message}</Text>
+                <Text style={styles.messageText}>{data?.msg}</Text>
                 <Text
-                  className="text-black "
+                  className="text-white"
                   style={{
                     fontFamily: 'Montserrat-Regular',
                     fontSize: responsiveFontSize(1.25),
@@ -197,16 +183,18 @@ const Messages = ({data}: any) => {
       ) : (
         <View style={styles.message}>
           <View style={styles.messageContent}>
-            <Image
-              source={{uri: 'https://randomuser.me/api/portraits/men/11.jpg'}}
-              style={styles.messageImage}
-            />
+            {otheruser?.profilePic?.url && (
+              <Image
+                source={{uri: otheruser?.profilePic?.url}}
+                style={styles.messageImage}
+              />
+            )}
             <View
-              style={[styles.messageTextContainer, {maxWidth}]}
-              className={`bg-color3 flex flex-col gap-y-1 ${
-                data?.message.length > 38 && 'w-[80%]'
+              style={[styles.messageTextContainerMe, {maxWidth}]}
+              className={`bg-[#f0f5f8] flex flex-col gap-y-1 ${
+                data?.msg.length > 38 && 'w-[80%]'
               }`}>
-              <Text style={styles.messageText}>{data?.message}</Text>
+              <Text style={styles.messageTextMe}>{data?.msg}</Text>
               <Text
                 className="text-black "
                 style={{
@@ -272,9 +260,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     flex: 1,
     marginRight: 10,
-    color: 'gray',
-    fontFamily: 'Montserrat-Regular',
-    
+    color: 'black',
+    fontFamily: 'Montserrat-SemiBold',
   },
   sendButton: {
     backgroundColor: '#79AC78',
@@ -286,6 +273,10 @@ const styles = StyleSheet.create({
   },
   message: {
     flexDirection: 'row',
+    paddingHorizontal: responsiveHeight(2),
+    paddingVertical: responsiveHeight(1),
+  },
+  messageOther: {
     paddingHorizontal: responsiveHeight(2),
     paddingVertical: responsiveHeight(1),
   },
@@ -302,13 +293,23 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginLeft: 10,
     padding: 10,
-
     flexShrink: 1,
   },
-  messageText: {
-    fontFamily: 'Montserrat-Regular',
+  messageTextContainerMe: {
+    borderRadius: 20,
+    marginRight: 10,
+    padding: 10,
+    flexShrink: 1,
+  },
+  messageTextMe: {
+    fontFamily: 'Montserrat-SemiBold',
     fontSize: responsiveFontSize(1.5),
     color: 'black',
+  },
+  messageText: {
+    fontFamily: 'Montserrat-SemiBold',
+    fontSize: responsiveFontSize(1.5),
+    color: 'white',
   },
 });
 
