@@ -11,6 +11,7 @@ import {RouteProp} from '@react-navigation/native';
 import {StackNavigationProp} from '@react-navigation/stack';
 import OtherProfile from '../screens/Job_provider/OtherProfile';
 import ActualMessage from '../screens/Job_seeker/ActualMessage';
+import {useMessageStore} from '../global/MessageCount';
 
 export type BottomStackParamsList = {
   Home: undefined;
@@ -25,6 +26,8 @@ export type BottomStackParamsList = {
 const Tab = createBottomTabNavigator();
 
 const ButtonNavigator = () => {
+  const messageCount = useMessageStore(state => state.messageCount);
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -71,7 +74,7 @@ const ButtonNavigator = () => {
           tabBarIcon: ({color}) => (
             <Feather name="message-circle" size={25} color={color} />
           ),
-          tabBarBadge: 2,
+          tabBarBadge: messageCount > 0 ? messageCount : undefined,
         }}
       />
       <Tab.Screen

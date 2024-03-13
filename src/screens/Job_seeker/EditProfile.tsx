@@ -30,8 +30,6 @@ interface editProfileApiProps {
 
 const RenderItem = () => {
   const {user, checkAuth} = useGlobalStore();
-  console.log('global', user);
-
   const [selectedItem, setSelectedItem] = React.useState<any>([]);
 
   const initialValues = {

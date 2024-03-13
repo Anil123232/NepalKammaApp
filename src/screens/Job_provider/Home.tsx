@@ -1,4 +1,10 @@
-import {View, Text, TouchableOpacity, FlatList} from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  FlatList,
+  PermissionsAndroid,
+} from 'react-native';
 import React, {useCallback, useEffect, useMemo, useRef} from 'react';
 import {useGlobalStore} from '../../global/store';
 import {StackNavigationProp} from '@react-navigation/stack';
@@ -9,7 +15,6 @@ import {
   responsiveFontSize,
   responsiveHeight,
 } from 'react-native-responsive-dimensions';
-import Search from '../GlobalComponents/Search';
 import Cards from '../GlobalComponents/Cards';
 import {TouchableWithoutFeedback} from 'react-native-gesture-handler';
 import {BottomSheetModal, BottomSheetModalProvider} from '@gorhom/bottom-sheet';
@@ -18,6 +23,14 @@ import {FetchGigStore} from './helper/FetchGigStore';
 import CardLoader from '../GlobalComponents/CardLoader';
 import {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
 import {BottomStackParamsList} from '../../navigation/ButtonNavigator';
+import {useSocket} from '../../contexts/SocketContext';
+import {useMessageStore} from '../../global/MessageCount';
+import {useIsFocused} from '@react-navigation/native';
+import HomeSearch from '../GlobalComponents/HomeSearch';
+import Search from '../GlobalComponents/Search';
+import {ErrorToast} from '../../components/ErrorToast';
+import Geolocation from 'react-native-geolocation-service';
+import useLocationStore, {LocationState} from '../../global/useLocationStore';
 
 interface logOutProps {
   navigation: StackNavigationProp<RootStackParamsList>;
@@ -51,57 +64,33 @@ export const initialGigData: GigData = {
   gig: [],
 };
 
-export const data: dataProps[] = [
-  {
-    id: 1,
-    what: 'something',
-    text: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Sint nisi officiis culpa, vitae tenetur corrupti. Beatae necessitatibus unde facere sequi libero perspiciatis, hic recusandae nulla a quas nostrum quidem voluptate?',
-  },
-  {
-    id: 2,
-    what: 'something',
-    text: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Sint nisi officiis culpa, vitae tenetur corrupti. Beatae necessitatibus unde facere sequi libero perspiciatis, hic recusandae nulla a quas nostrum quidem voluptate?',
-  },
-  {
-    id: 3,
-    what: 'something',
-    text: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Sint nisi officiis culpa, vitae tenetur corrupti. Beatae necessitatibus unde facere sequi libero perspiciatis, hic recusandae nulla a quas nostrum quidem voluptate?',
-  },
-  {
-    id: 4,
-    what: 'something',
-    text: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Sint nisi officiis culpa, vitae tenetur corrupti. Beatae necessitatibus unde facere sequi libero perspiciatis, hic recusandae nulla a quas nostrum quidem voluptate?',
-  },
-  {
-    id: 5,
-    what: 'something',
-    text: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Sint nisi officiis culpa, vitae tenetur corrupti. Beatae necessitatibus unde facere sequi libero perspiciatis, hic recusandae nulla a quas nostrum quidem voluptate?',
-  },
-  {
-    id: 6,
-    what: 'something',
-    text: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Sint nisi officiis culpa, vitae tenetur corrupti. Beatae necessitatibus unde facere sequi libero perspiciatis, hic recusandae nulla a quas nostrum quidem voluptate?',
-  },
-  {
-    id: 7,
-    what: 'something',
-    text: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Sint nisi officiis culpa, vitae tenetur corrupti. Beatae necessitatibus unde facere sequi libero perspiciatis, hic recusandae nulla a quas nostrum quidem voluptate?',
-  },
-  {
-    id: 8,
-    what: 'something',
-    text: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Sint nisi officiis culpa, vitae tenetur corrupti. Beatae necessitatibus unde facere sequi libero perspiciatis, hic recusandae nulla a quas nostrum quidem voluptate?',
-  },
-];
-
 const Home = ({navigation, bottomNavigation}: logOutProps) => {
   const user: userStateProps = useGlobalStore((state: any) => state.user);
   const [isPopular, setIsPopular] = React.useState<boolean>(true);
   const [selectedData, setSelectedData] = React.useState<any>(null);
   const [gigDetails, setgigDetails] = React.useState<GigData>(initialGigData);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
+  const isFocused = useIsFocused();
 
-  const Drawer = createDrawerNavigator();
+  //distance
+  const [selectedDistance, setSelectedDistance] = React.useState(0);
+
+  //low to high
+  const [lowToHigh, setLowToHigh] = React.useState<boolean>(false);
+  //high to low
+  const [highToLow, setHighToLow] = React.useState<boolean>(false);
+  //sort by rating
+  const [sortByRating, setSortByRating] = React.useState<boolean>(false);
+  // category
+  const [selectedCategory, setSelectedCategory] = React.useState<string>('');
+  //search text
+  const [searchText, setSearchText] = React.useState<string>('');
+
+  const [isModalVisible, setModalVisible] = React.useState<boolean>(false);
+
+  const [currentPage, setCurrentPage] = React.useState<number>(1);
+  const [totalPages, setTotalPages] = React.useState<number>(1);
+  const [totalGigs, setTotalGigs] = React.useState<number>(0);
 
   // ref
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
@@ -116,17 +105,224 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
   const handleSheetChanges = useCallback((index: number) => {
     console.log('handleSheetChanges', index);
   }, []);
+  const setLocation = useLocationStore((state: any) => state.setLocation);
 
-  //get all job details
-  const getGigDetails = async () => {
-    const response = await (FetchGigStore.getState() as getJobProps).getGig();
-    setgigDetails(response);
+  //search gig
+  const searchGig = async (
+    searchText: string,
+    selectedCategory: string,
+    selectedDistance: any,
+    lowToHigh: boolean,
+    highTolow: boolean,
+    sortByRating: boolean,
+    page: number,
+    limit: number,
+    // lat: number,
+    // long: number,
+  ) => {
+    try {
+      const response = await (FetchGigStore.getState() as any).searchGig(
+        searchText,
+        selectedCategory,
+        selectedDistance,
+        lowToHigh,
+        highTolow,
+        sortByRating,
+        page,
+        limit,
+        // lat,
+        // long,
+      );
+      setgigDetails({
+        gig: [],
+        // nearBy: [],
+      });
+      setTotalGigs(response?.totalGigs);
+      setgigDetails(prevGig => ({
+        ...prevGig,
+        gig: [...response.gig],
+      }));
+
+      if (response.totalPages !== undefined) {
+        setTotalPages(response.totalPages);
+      }
+      if (response.currentPage !== undefined) {
+        setCurrentPage(response.currentPage);
+      }
+    } catch (error: any) {
+      const errorMessage = error
+        .toString()
+        .replace('[Error: ', '')
+        .replace(']', '');
+      ErrorToast(errorMessage);
+    }
     setIsLoading(false);
   };
 
+  const requestLocationPermission = async () => {
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        {
+          title: 'NepalKamma App Location Permission',
+          message: 'NepalKamma App needs access to your Location ',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        },
+      );
+      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+        Geolocation.getCurrentPosition(
+          position => {
+            setLocation(position.coords.latitude, position.coords.longitude);
+
+            searchGig(
+              searchText,
+              selectedCategory,
+              selectedDistance,
+              lowToHigh,
+              highToLow,
+              sortByRating,
+              1,
+              5,
+              // location.latitude,
+              // location.longitude,
+            );
+            setIsLoading(false);
+          },
+          error => {
+            // See error code charts below.
+            console.log(error.code, error.message);
+          },
+          {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
+        );
+      } else {
+        console.log('Location permission denied');
+      }
+    } catch (err: any) {
+      ErrorToast(err.message);
+    }
+  };
+
+  //get all job details
+  // const getGigDetails = async () => {
+  //   const response = await (FetchGigStore.getState() as getJobProps).getGig();
+  //   setgigDetails(response);
+  //   setIsLoading(false);
+  // };
+
+  const readUnreadMessage = async () => {
+    await (useMessageStore.getState() as any).unreadMessageCount();
+  };
+
   useEffect(() => {
-    getGigDetails();
-  }, []);
+    if (isFocused) {
+      readUnreadMessage();
+      requestLocationPermission();
+    }
+  }, [isFocused]);
+
+  const socket = useSocket();
+
+  useEffect(() => {
+    if (socket) {
+      socket?.emit('addUser', {
+        username: user?.username,
+        userId: user?._id,
+      });
+    }
+  }, [socket]);
+
+  useEffect(() => {
+    const messageListener = ({sender, message, conversationId}: any) => {
+      useMessageStore.setState(state => ({
+        messageCount: state.messageCount + 1,
+      }));
+      console.log('hello');
+    };
+
+    socket?.on('textMessageFromBack', messageListener);
+
+    return () => {
+      socket?.off('textMessageFromBack', messageListener);
+    };
+  }, [socket]);
+
+  const handleOkFunction = () => {
+    setModalVisible(false);
+    setIsLoading(true);
+    setTotalGigs(0);
+
+    searchGig(
+      searchText,
+      selectedCategory,
+      selectedDistance,
+      lowToHigh,
+      highToLow,
+      sortByRating,
+      1,
+      5,
+      // location.latitude,
+      // location.longitude,
+    );
+    console.log(
+      selectedDistance,
+      lowToHigh,
+      highToLow,
+      sortByRating,
+      selectedCategory,
+      searchText,
+    );
+  };
+
+  const resetSearch = () => {
+    setModalVisible(false);
+    setIsLoading(true);
+    setTotalGigs(0);
+    setSelectedCategory('');
+    setSearchText('');
+    setSelectedDistance(0);
+    setLowToHigh(false);
+    setHighToLow(false);
+    setSortByRating(false);
+    searchGig(
+      '',
+      '',
+      '',
+      false,
+      false,
+      false,
+      1,
+      5,
+      // location.latitude,
+      // location.longitude,
+    );
+  };
+
+  // const handleEndReached = () => {
+  //   if (!isFetchingMore && currentPage < totalPages) {
+  //     const nextPage = currentPage + 1;
+  //     setIsFetchingMore(true);
+  //     searchJob(
+  //       searchText,
+  //       selectedCategory,
+  //       selectedDistance,
+  //       lowToHigh,
+  //       highToLow,
+  //       sortByRating,
+  //       nextPage,
+  //       5,
+  //       location.latitude,
+  //       location.longitude,
+  //     )
+  //       .then(() => setIsFetchingMore(false))
+  //       .catch(error => {
+  //         console.error('Error fetching more data:', error);
+  //         setIsFetchingMore(false);
+  //       });
+  //   }
+  //   console.log('hitted');
+  // };
 
   return (
     <BottomSheetModalProvider>
@@ -169,7 +365,20 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
           {/* description end  */}
           {/* search  */}
           <View style={{marginTop: responsiveHeight(3)}}>
-            <Search text={'Home'} />
+            <Search
+              text={'Home'}
+              user={user}
+              setSelectedDistance={setSelectedDistance}
+              setHighToLow={setHighToLow}
+              setLowToHigh={setLowToHigh}
+              setSortByRating={setSortByRating}
+              handleOkFunction={handleOkFunction}
+              isModalVisible={isModalVisible}
+              setModalVisible={setModalVisible}
+              selectedDistance={selectedDistance}
+              setSearchText={setSearchText}
+              resetSearch={resetSearch}
+            />
           </View>
           {/* body start */}
           <View style={{marginTop: responsiveHeight(3)}}>
@@ -225,15 +434,14 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
                       setSelectedData(item);
                       handlePresentModalPress();
                     }}>
-                    <Cards data={item} />
+                    <Cards data={item} user={user} />
                   </TouchableWithoutFeedback>
                 )}
                 contentContainerStyle={{
                   paddingBottom: responsiveHeight(50),
                   paddingTop: responsiveHeight(2),
                 }}
-                showsVerticalScrollIndicator={false}
-                ></FlatList>
+                showsVerticalScrollIndicator={false}></FlatList>
             )}
 
             {!isLoading && !isPopular && (
@@ -247,15 +455,14 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
                       setSelectedData(item);
                       handlePresentModalPress();
                     }}>
-                    <Cards data={item} />
+                    <Cards data={item} user={user} />
                   </TouchableWithoutFeedback>
                 )}
                 contentContainerStyle={{
                   paddingBottom: responsiveHeight(50),
                   paddingTop: responsiveHeight(2),
                 }}
-                showsVerticalScrollIndicator={false}
-                ></FlatList>
+                showsVerticalScrollIndicator={false}></FlatList>
             )}
             <BottomSheetModal
               ref={bottomSheetModalRef}

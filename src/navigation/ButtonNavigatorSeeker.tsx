@@ -10,6 +10,7 @@ import Explore from '../screens/Job_seeker/Explore';
 import CreateGigs from '../screens/Job_seeker/CreateGigs';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ActualMessage from '../screens/Job_seeker/ActualMessage';
+import { useMessageStore } from '../global/MessageCount';
 
 export type BottomStackParamsList = {
   Home_bottom: undefined;
@@ -24,6 +25,8 @@ export type BottomStackParamsList = {
 const Tab = createBottomTabNavigator();
 
 const ButtonNavigatorSeeker = () => {
+  const messageCount = useMessageStore(state => state.messageCount);
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -68,7 +71,7 @@ const ButtonNavigatorSeeker = () => {
           tabBarIcon: ({color}) => (
             <Feather name="message-circle" size={25} color={color} />
           ),
-          tabBarBadge: 2,
+          tabBarBadge: messageCount > 0 ? messageCount : undefined,
         }}
       />
       <Tab.Screen

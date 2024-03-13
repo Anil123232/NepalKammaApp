@@ -34,11 +34,13 @@ const Cards = ({data, user}: any) => {
       <View className="flex flex-row gap-x-4">
         {/* image  */}
         <View>
-          <Image
-            // source={require('../../../assets/images/user-profile.jpg')}
-            source={{uri: 'https://randomuser.me/api/portraits/men/81.jpg'}}
-            style={{height: 40, width: 40, borderRadius: 40}}
-          />
+          {data && data?.postedBy?.profilePic?.url && (
+            <Image
+              // source={require('../../../assets/images/user-profile.jpg')}
+              source={{uri: data?.postedBy?.profilePic.url}}
+              style={{height: 40, width: 40, borderRadius: 40}}
+            />
+          )}
         </View>
         {/* text  */}
         <View className="flex flex-col gap-y-1">
@@ -94,9 +96,9 @@ const Cards = ({data, user}: any) => {
           baseStyle={{
             color: 'black',
             fontFamily: 'Montserrat-Regular',
-            fontSize: responsiveFontSize(1.75),
+            fontSize: responsiveFontSize(1.5),
             lineHeight: 18.5,
-            height: responsiveHeight(21.2),
+            height: responsiveHeight(21.85),
           }}
           // tagsStyles={{
           //   p: {color: 'red', fontFamily: 'Montserrat-Bold'},

@@ -11,12 +11,12 @@ import {Image} from 'react-native';
 import {
   responsiveFontSize,
   responsiveHeight,
+  responsiveScreenFontSize,
   responsiveWidth,
 } from 'react-native-responsive-dimensions';
 import IconIcons from 'react-native-vector-icons/Ionicons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import Cards from '../GlobalComponents/Cards';
-import {data} from './Home';
 import {DrawerStackParamsListSeeker} from '../../navigation/DrawerStackSeeker';
 import {DrawerNavigationProp} from '@react-navigation/drawer';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -51,7 +51,7 @@ const MyProfileComponent = ({navigation}: MyProfileProps) => {
   const [currentTab, setCurrentTab] = React.useState<string>('');
   const [isUploadingImage, setIsUploadingImage] = useState<boolean>(false);
 
-  const handleNextItemPress = () => {
+  const handleNextItemPress = (data: any) => {
     var nextIndex = (currentIndex + 1) % data.length;
     if (nextIndex === 2) {
       nextIndex = 0;
@@ -223,7 +223,9 @@ const MyProfileComponent = ({navigation}: MyProfileProps) => {
                   fontFamily: 'Montserrat-Bold',
                   fontSize: responsiveHeight(1.5),
                 }}>
-                {user?.title}
+                {user?.title || user?.role === 'job_seeker'
+                  ? 'I am a freelancer'
+                  : 'I am a job provider'}
               </Text>
             </View>
             <View className="flex flex-row gap-x-1">
@@ -245,7 +247,7 @@ const MyProfileComponent = ({navigation}: MyProfileProps) => {
                 fontFamily: 'Montserrat-Regular',
                 fontSize: responsiveHeight(1.75),
               }}>
-              {user?.bio}
+              {user?.bio || 'Edit your bio'}
             </Text>
             <View className="flex flex-row gap-x-1">
               <IconIcons name="location-outline" size={17} color="#79AC78" />
@@ -255,7 +257,7 @@ const MyProfileComponent = ({navigation}: MyProfileProps) => {
                   fontFamily: 'Montserrat-Regular',
                   fontSize: responsiveHeight(1.75),
                 }}>
-                {user?.location}
+                {user?.location || 'Edit your location'}
               </Text>
             </View>
           </View>
@@ -317,14 +319,30 @@ const MyProfileComponent = ({navigation}: MyProfileProps) => {
               }}>
               About me
             </Text>
-            <Text
-              className="text-black tracking-wide mb-3"
-              style={{
-                fontFamily: 'Montserrat-Regular',
-                fontSize: responsiveHeight(1.75),
-              }}>
-              {user?.about_me}
-            </Text>
+            {user?.about_me === '' ? (
+              <Text
+                className="text-red-500"
+                style={{
+                  fontSize: responsiveScreenFontSize(1.5),
+                  fontWeight: 'bold',
+                  textAlign: 'center',
+                  padding: responsiveHeight(2),
+                }}>
+                Complete your Profile to get more job opportunities and to get a
+                higher rating from the clients. Just click on the "Edit Profile"
+                button to complete your profile.
+              </Text>
+            ) : (
+              <Text
+                className="text-black tracking-wide mb-3"
+                style={{
+                  fontFamily: 'Montserrat-Regular',
+                  fontSize: responsiveHeight(1.75),
+                }}>
+                {user?.about_me}
+              </Text>
+            )}
+
             <View className="border-red-500 border-solid border-[1px] mr-2 py-1 px-2 rounded-md items-center justify-center">
               <Text
                 className="text-black tracking-wide"
@@ -347,28 +365,42 @@ const MyProfileComponent = ({navigation}: MyProfileProps) => {
               Skills
             </Text>
             <View>
-              <View style={{padding: responsiveHeight(1)}}>
-                <FlatList
-                  horizontal={true}
-                  data={user?.skills}
-                  renderItem={({item}) => {
-                    return (
-                      <View
-                        style={{marginBottom: responsiveHeight(1)}}
-                        className="border-color2 border-solid border-[1px] mr-2 py-1 px-2 rounded-md">
-                        <Text
-                          className="text-black"
-                          style={{
-                            fontSize: responsiveFontSize(1.75),
-                            fontFamily: 'Montserrat-Regular',
-                          }}>
-                          {item}
-                        </Text>
-                      </View>
-                    );
-                  }}
-                />
-              </View>
+              {user?.skills.length === 0 ? (
+                <Text
+                  className="text-red-500"
+                  style={{
+                    fontSize: responsiveScreenFontSize(1.5),
+                    fontWeight: 'bold',
+                    textAlign: 'center',
+                    padding: responsiveHeight(2),
+                  }}>
+                  Skills are very important to get a job recommendation. Just
+                  click on the "Edit Profile" button to add your skills.
+                </Text>
+              ) : (
+                <View style={{padding: responsiveHeight(1)}}>
+                  <FlatList
+                    horizontal={true}
+                    data={user?.skills}
+                    renderItem={({item}) => {
+                      return (
+                        <View
+                          style={{marginBottom: responsiveHeight(1)}}
+                          className="border-color2 border-solid border-[1px] mr-2 py-1 px-2 rounded-md">
+                          <Text
+                            className="text-black"
+                            style={{
+                              fontSize: responsiveFontSize(1.75),
+                              fontFamily: 'Montserrat-Regular',
+                            }}>
+                            {item}
+                          </Text>
+                        </View>
+                      );
+                    }}
+                  />
+                </View>
+              )}
             </View>
           </View>
         </View>
@@ -416,7 +448,7 @@ const MyProfileComponent = ({navigation}: MyProfileProps) => {
             )}
             <TouchableOpacity
               className="bg-color2 py-2 flex items-center justify-center rounded-md mb-3"
-              onPress={handleNextItemPress}>
+              onPress={() => handleNextItemPress(gigDetails?.gig)}>
               <Text
                 style={{
                   fontFamily: 'Montserrat-SemiBold',
@@ -454,7 +486,10 @@ const MyProfileComponent = ({navigation}: MyProfileProps) => {
         {currentTab === 'edit-profile' ? (
           <EditProfile bottomSheetModalRef={bottomSheetModalRef} />
         ) : (
-          <DocumentVerify bottomSheetModalRef={bottomSheetModalRef} />
+          <DocumentVerify
+            bottomSheetModalRef={bottomSheetModalRef}
+            navigation={navigation}
+          />
         )}
         {/* </View> */}
       </BottomSheetModal>

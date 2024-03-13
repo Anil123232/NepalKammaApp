@@ -250,10 +250,10 @@ const Login = ({navigation}: LoginScreenProps) => {
                   </Text>
                 </TouchableOpacity>
               </View>
-              <TouchableOpacity onPress={removeHandler}>
-                <Text className="text-green-300">
-                  Remove local storage item
-                </Text>
+              <TouchableOpacity
+                onPress={removeHandler}
+                style={{marginTop: responsiveHeight(4)}}>
+                <Text className="text-green-300">r</Text>
               </TouchableOpacity>
             </View>
           </View>

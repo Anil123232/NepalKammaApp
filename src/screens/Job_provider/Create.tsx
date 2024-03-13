@@ -139,6 +139,10 @@ function CreateForm() {
         <Formik
           initialValues={initialValues}
           onSubmit={(values: CreateJobDetailsProps) => {
+            if (values.title.length < 50) {
+              ErrorToast('Title must be at least 50 characters long');
+              return;
+            }
             handleCreateJob(values);
           }}>
           {({handleChange, handleBlur, handleSubmit, values, errors}) => (

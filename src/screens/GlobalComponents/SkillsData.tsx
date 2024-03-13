@@ -62,6 +62,20 @@ export const category = [
   {id: 10, name: 'gardening_farming'},
 ];
 
+export const categoryFilter = [
+  {id: 1, name: 'All'},
+  {id: 2, name: 'home_services'},
+  {id: 3, name: 'repairs'},
+  {id: 4, name: 'automotive'},
+  {id: 5, name: 'business'},
+  {id: 6, name: 'childcare'},
+  {id: 7, name: 'construction'},
+  {id: 8, name: 'computer_it'},
+  {id: 9, name: 'education_training'},
+  {id: 10, name: 'labor'},
+  {id: 11, name: 'gardening_farming'},
+];
+
 // home_services: cleaning, cooking, etc
 // repairs: appliances, electrical, etc
 // automotive

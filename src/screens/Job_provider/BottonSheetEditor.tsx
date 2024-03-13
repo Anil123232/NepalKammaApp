@@ -14,6 +14,7 @@ import {
   responsiveWidth,
 } from 'react-native-responsive-dimensions';
 import AntDesign from 'react-native-vector-icons/AntDesign';
+import {ErrorToast} from '../../components/ErrorToast';
 const systemFonts = [
   ...defaultSystemFonts,
   'Montserrat-Regular',
@@ -35,6 +36,11 @@ const BottonSheetEditor = ({
   const {width} = useWindowDimensions();
 
   const handleSubmitOkay = () => {
+    console.log(text.length);
+    if (text.length < 200) {
+      ErrorToast('Job Description must be at least 200 characters');
+      return;
+    }
     setJobDescription(text);
     bottomSheetModalRef.current?.close();
   };

@@ -16,7 +16,6 @@ import {
   responsiveFontSize,
   responsiveHeight,
 } from 'react-native-responsive-dimensions';
-import Search from '../GlobalComponents/Search';
 import Cards from '../GlobalComponents/Cards';
 import {TouchableWithoutFeedback} from 'react-native-gesture-handler';
 import {BottomSheetModal, BottomSheetModalProvider} from '@gorhom/bottom-sheet';
@@ -28,6 +27,11 @@ import Geolocation from 'react-native-geolocation-service';
 import {ErrorToast} from '../../components/ErrorToast';
 import {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
 import {BottomStackParamsList} from '../../navigation/ButtonNavigatorSeeker';
+import {useSocket} from '../../contexts/SocketContext';
+import {useMessageStore} from '../../global/MessageCount';
+import {useIsFocused} from '@react-navigation/native';
+import useLocationStore from '../../global/useLocationStore';
+import HomeSearch from '../GlobalComponents/HomeSearch';
 
 interface profileProps {
   navigation: DrawerNavigationProp<DrawerStackParamsListSeeker>;
@@ -48,6 +52,8 @@ export type userStateProps = {
   isTick: boolean;
   bio: string;
   about_me: string;
+  phoneNumber: string;
+  isDocumentVerified: string;
 };
 
 type dataProps = {
@@ -75,53 +81,12 @@ export interface JobDetails {
 
 export interface JobData {
   job: JobDetails[];
+  totalJobs?: number;
   totalPages?: number;
   currentPage?: number;
   nearBy: JobDetails[];
   recommendJobsList?: JobDetails[];
 }
-export const data: dataProps[] = [
-  {
-    id: 1,
-    what: 'something',
-    text: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Sint nisi officiis culpa, vitae tenetur corrupti. Beatae necessitatibus unde facere sequi libero perspiciatis, hic recusandae nulla a quas nostrum quidem voluptate?',
-  },
-  {
-    id: 2,
-    what: 'something',
-    text: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Sint nisi officiis culpa, vitae tenetur corrupti. Beatae necessitatibus unde facere sequi libero perspiciatis, hic recusandae nulla a quas nostrum quidem voluptate?',
-  },
-  {
-    id: 3,
-    what: 'something',
-    text: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Sint nisi officiis culpa, vitae tenetur corrupti. Beatae necessitatibus unde facere sequi libero perspiciatis, hic recusandae nulla a quas nostrum quidem voluptate?',
-  },
-  {
-    id: 4,
-    what: 'something',
-    text: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Sint nisi officiis culpa, vitae tenetur corrupti. Beatae necessitatibus unde facere sequi libero perspiciatis, hic recusandae nulla a quas nostrum quidem voluptate?',
-  },
-  {
-    id: 5,
-    what: 'something',
-    text: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Sint nisi officiis culpa, vitae tenetur corrupti. Beatae necessitatibus unde facere sequi libero perspiciatis, hic recusandae nulla a quas nostrum quidem voluptate?',
-  },
-  {
-    id: 6,
-    what: 'something',
-    text: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Sint nisi officiis culpa, vitae tenetur corrupti. Beatae necessitatibus unde facere sequi libero perspiciatis, hic recusandae nulla a quas nostrum quidem voluptate?',
-  },
-  {
-    id: 7,
-    what: 'something',
-    text: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Sint nisi officiis culpa, vitae tenetur corrupti. Beatae necessitatibus unde facere sequi libero perspiciatis, hic recusandae nulla a quas nostrum quidem voluptate?',
-  },
-  {
-    id: 8,
-    what: 'something',
-    text: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Sint nisi officiis culpa, vitae tenetur corrupti. Beatae necessitatibus unde facere sequi libero perspiciatis, hic recusandae nulla a quas nostrum quidem voluptate?',
-  },
-];
 
 export interface getJobProps {
   getJob: (page: number, limit: number) => Promise<JobData>;
@@ -144,6 +109,8 @@ export interface myLocationProps {
 
 const Home = ({navigation, bottomNavigation}: profileProps) => {
   const user: userStateProps = useGlobalStore((state: any) => state.user);
+  const setLocation = useLocationStore((state: any) => state.setLocation);
+  const isFocused = useIsFocused();
   const [currentTab, setCurrentTab] = React.useState<string>('Best Matches');
   const [selectedData, setSelectedData] = React.useState<any>(null);
   const [jobDetails, setJobDetails] = React.useState<JobData>(initialJobData);
@@ -156,6 +123,36 @@ const Home = ({navigation, bottomNavigation}: profileProps) => {
     latitude: 0,
     longitude: 0,
   });
+
+  const socket = useSocket();
+
+  const readUnreadMessage = async () => {
+    await (useMessageStore.getState() as any).unreadMessageCount();
+  };
+
+  useEffect(() => {
+    if (socket) {
+      socket?.emit('addUser', {
+        username: user?.username,
+        userId: user?._id,
+      });
+    }
+  }, [socket]);
+
+  useEffect(() => {
+    const messageListener = ({sender, message, conversationId}: any) => {
+      useMessageStore.setState(state => ({
+        messageCount: state.messageCount + 1,
+      }));
+      console.log('hello');
+    };
+
+    socket?.on('textMessageFromBack', messageListener);
+
+    return () => {
+      socket?.off('textMessageFromBack', messageListener);
+    };
+  }, [socket]);
 
   const Drawer = createDrawerNavigator();
 
@@ -200,7 +197,10 @@ const Home = ({navigation, bottomNavigation}: profileProps) => {
   };
 
   useEffect(() => {
-    requestLocationPermission();
+    if (isFocused) {
+      readUnreadMessage();
+      requestLocationPermission();
+    }
   }, []);
 
   const requestLocationPermission = async () => {
@@ -222,6 +222,7 @@ const Home = ({navigation, bottomNavigation}: profileProps) => {
               latitude: position.coords.latitude,
               longitude: position.coords.longitude,
             });
+            setLocation(position.coords.latitude, position.coords.longitude);
             getJobDetails();
             getNearbyJob(position.coords.latitude, position.coords.longitude);
             getRecommendedJob();
@@ -281,9 +282,16 @@ const Home = ({navigation, bottomNavigation}: profileProps) => {
           </View>
           {/* description end  */}
           {/* search  */}
-          <View style={{marginTop: responsiveHeight(3)}}>
-            <Search text={'Home'} user={user} />
-          </View>
+          <TouchableOpacity
+            onPress={() =>
+              bottomNavigation.navigate('explore', {
+                id: 'explore',
+              })
+            }>
+            <View style={{marginTop: responsiveHeight(3)}}>
+              <HomeSearch text={'Home'} user={user} />
+            </View>
+          </TouchableOpacity>
           {/* body start */}
           <View style={{marginTop: responsiveHeight(3)}}>
             {/* text start */}
@@ -358,7 +366,7 @@ const Home = ({navigation, bottomNavigation}: profileProps) => {
             )}
             {!isLoading && currentTab === 'Best Matches' && (
               <FlatList
-                keyExtractor={item => item._id.toString()}
+                keyExtractor={item => item._id?.toString() || ''}
                 data={recommendedJob?.recommendJobsList?.slice(0, 5)}
                 renderItem={({item}) => (
                   <TouchableWithoutFeedback
@@ -394,6 +402,9 @@ const Home = ({navigation, bottomNavigation}: profileProps) => {
                   paddingBottom: responsiveHeight(50),
                   paddingTop: responsiveHeight(1),
                 }}
+                ListFooterComponent={
+                  <View style={{height: 50, backgroundColor: 'white'}} />
+                }
                 showsVerticalScrollIndicator={false}></FlatList>
             )}
             {/* Most Recent  */}
@@ -401,11 +412,35 @@ const Home = ({navigation, bottomNavigation}: profileProps) => {
               <FlatList
                 keyExtractor={item => item._id.toString()}
                 data={jobDetails?.job}
-                renderItem={({item}) => <Cards data={item} user={user} />}
+                renderItem={({item}) => (
+                  <TouchableWithoutFeedback
+                    onPress={() => {
+                      setSelectedData(item);
+                      handlePresentModalPress();
+                    }}>
+                    <Cards data={item} user={user} />
+                  </TouchableWithoutFeedback>
+                )}
+                ListEmptyComponent={() => (
+                  // Render this component when there's no data
+                  <View style={{paddingBottom: responsiveHeight(25)}}>
+                    <Text
+                      className="text-red-500"
+                      style={{
+                        fontFamily: 'Montserrat-Bold',
+                        fontSize: responsiveFontSize(1.75),
+                      }}>
+                      No jobs available
+                    </Text>
+                  </View>
+                )}
                 contentContainerStyle={{
                   paddingBottom: responsiveHeight(50),
                   paddingTop: responsiveHeight(1),
                 }}
+                ListFooterComponent={
+                  <View style={{height: 50, backgroundColor: 'white'}} />
+                }
                 showsVerticalScrollIndicator={false}></FlatList>
             )}
             {/* Near by Work */}
@@ -414,11 +449,22 @@ const Home = ({navigation, bottomNavigation}: profileProps) => {
                 keyExtractor={item => item._id.toString()}
                 initialNumToRender={5}
                 data={nearByJobDetails?.nearBy?.slice(0, 5)}
-                renderItem={({item}) => <Cards data={item} user={user} />}
+                renderItem={({item}) => (
+                  <TouchableWithoutFeedback
+                    onPress={() => {
+                      setSelectedData(item);
+                      handlePresentModalPress();
+                    }}>
+                    <Cards data={item} user={user} />
+                  </TouchableWithoutFeedback>
+                )}
                 contentContainerStyle={{
                   paddingBottom: responsiveHeight(50),
                   paddingTop: responsiveHeight(1),
                 }}
+                ListFooterComponent={
+                  <View style={{height: 50, backgroundColor: 'white'}} />
+                }
                 showsVerticalScrollIndicator={false}></FlatList>
             )}
 

@@ -19,7 +19,6 @@ import IconIcons from 'react-native-vector-icons/Ionicons';
 import Feather from 'react-native-vector-icons/Feather';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import Cards from '../GlobalComponents/Cards';
-import {data} from './Home';
 import Review from '../GlobalComponents/Review';
 import {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
 import {BottomStackParamsList} from '../../navigation/ButtonNavigator';
@@ -33,11 +32,10 @@ interface OtherProfileProps {
 
 const OtherProfile = ({navigation, route}: OtherProfileProps) => {
   const id = route?.params.id;
-  console.log('this is', id);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [gigDetails, setgigDetails] = React.useState<GigData>(initialGigData);
 
-  const handleNextItemPress = () => {
+  const handleNextItemPress = (data: any) => {
     var nextIndex = (currentIndex + 1) % data.length;
     if (nextIndex === 5) {
       nextIndex = 0;
@@ -285,7 +283,7 @@ const OtherProfile = ({navigation, route}: OtherProfileProps) => {
               }}></FlatList>
             <TouchableOpacity
               className="bg-color2 py-2 flex items-center justify-center rounded-md mb-3"
-              onPress={handleNextItemPress}>
+              onPress={() => handleNextItemPress(gigDetails?.gig)}>
               <Text
                 style={{
                   fontFamily: 'Montserrat-SemiBold',

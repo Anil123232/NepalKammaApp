@@ -73,6 +73,7 @@ const SignupForm = ({role, navigation}: SignupFormProps) => {
 
   // handle signup
   const handleSignup = async (values: SignUpDetails) => {
+    console.log("callded", gender)
     setIsSubmitting(true);
     try {
       if (role && gender) {

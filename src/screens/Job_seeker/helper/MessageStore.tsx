@@ -64,4 +64,36 @@ export const MessageStore = create(set => ({
       }
     }
   },
+  getLastMessage: async (id: string) => {
+    //id --> conversation id
+    try {
+      const response = await axios_auth.get(`/message/lastMessages/${id}`);
+      if (response.status === 200) {
+        return response.data;
+      }
+      return [];
+    } catch (error: any) {
+      if (error.response) {
+        throw new Error(error.response.data.message);
+      } else {
+        throw new Error(error.message);
+      }
+    }
+  },
+  readAllMessage: async (id: string) => {
+    //id --> conversation id
+    try {
+      const response = await axios_auth.put(`/message/readAllMessage/${id}`);
+      if (response.status === 200) {
+        return response.data;
+      }
+      return [];
+    } catch (error: any) {
+      if (error.response) {
+        throw new Error(error.response.data.message);
+      } else {
+        throw new Error(error.message);
+      }
+    }
+  }
 }));

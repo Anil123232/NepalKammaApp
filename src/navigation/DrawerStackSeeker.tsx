@@ -8,12 +8,14 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import ButtonNavigatorSeeker from './ButtonNavigatorSeeker';
 import MyProfile from '../screens/Job_seeker/MyProfile';
 import TopBuyer from '../screens/Job_seeker/TopBuyer';
+import PhoneVerification from '../screens/Job_seeker/phone_verification/PhoneVerification';
 
 export type DrawerStackParamsListSeeker = {
   Home: undefined;
   My_Profile: undefined;
   My_Review: undefined;
   Top_Buyer: undefined;
+  Phone_Verify: {id: string};
 };
 
 const Drawer = createDrawerNavigator();
@@ -50,7 +52,7 @@ const DrawerStackSeeker = () => {
           drawerIcon: ({color}) => (
             <Ionicons name="person-outline" size={22} color={color} />
           ),
-          title: "Profile"
+          title: 'Profile',
         }}
       />
       <Drawer.Screen
@@ -60,7 +62,7 @@ const DrawerStackSeeker = () => {
           drawerIcon: ({color}) => (
             <Octicons name="code-review" size={22} color={color} />
           ),
-          title: "Review"
+          title: 'Review',
         }}
       />
       <Drawer.Screen
@@ -70,7 +72,19 @@ const DrawerStackSeeker = () => {
           drawerIcon: ({color}) => (
             <FontAwesome name="buysellads" size={22} color={color} />
           ),
-          title: "Top Buyer"
+          title: 'Top Buyer',
+        }}
+      />
+      {/* i want it completley invisible  */}
+      <Drawer.Screen
+        name="Phone_Verify"
+        component={PhoneVerification}
+        options={{
+          drawerLabel: () => null,
+          drawerIcon: () => null,
+          drawerItemStyle:{
+            display: 'none'
+          }
         }}
       />
     </Drawer.Navigator>

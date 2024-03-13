@@ -22,6 +22,7 @@ import {systemFonts} from '../GlobalComponents/Cards';
 import {MessageStore} from './helper/MessageStore';
 import {userStateProps} from './Home';
 import {useGlobalStore} from '../../global/store';
+import {useSocket} from '../../contexts/SocketContext';
 
 const BottonSheetCardSeeker = ({
   bottomSheetModalRef,
@@ -31,6 +32,9 @@ const BottonSheetCardSeeker = ({
   const user: userStateProps = useGlobalStore((state: any) => state.user);
   // Convert the single data into an array
   const dataArray = data ? [data] : [];
+
+  //socket io
+  const socket = useSocket();
 
   //is applying state
   const [isApplying, setIsApplying] = useState<boolean>(false);
@@ -48,6 +52,7 @@ const BottonSheetCardSeeker = ({
     const newValues = {
       conversationId: conversationId,
       msg: `Hello, I am interested in your job [${data?.title}]. Can we discuss more about it?`,
+      recipientId: data?.postedBy._id,
     };
     const response = await (MessageStore.getState() as any).createMessage(
       newValues,
@@ -61,6 +66,15 @@ const BottonSheetCardSeeker = ({
         conversation_id: conversationId,
       });
     }
+
+    //for socket io
+    const messageData = {
+      sender: user?._id,
+      receiver: data?.postedBy._id,
+      message: newValues.msg,
+      conversationId: newValues.conversationId,
+    };
+    socket.emit('textMessage', messageData);
   };
 
   const createConversation = async () => {
@@ -100,12 +114,18 @@ const BottonSheetCardSeeker = ({
         {/* uploader images profiel */}
         <View className="flex flex-row gap-x-2">
           {/* profile pic  */}
-          <View>
-            <Image
-              source={require('../../../assets/images/user-profile.jpg')}
-              style={{height: 40, width: 40, borderRadius: 40}}
-            />
-          </View>
+          <TouchableOpacity onPress={()=> navigation.navigate("Other_Profile", {
+            id: data?.postedBy?._id
+          })}>
+            <View>
+              {data?.postedBy?.profilePic && (
+                <Image
+                  source={{uri: data?.postedBy?.profilePic.url}}
+                  style={{height: 40, width: 40, borderRadius: 40}}
+                />
+              )}
+            </View>
+          </TouchableOpacity>
           {/* name  */}
           <View className="flex flex-col gap-y-1">
             <Text

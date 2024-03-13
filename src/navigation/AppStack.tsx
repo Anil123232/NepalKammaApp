@@ -29,6 +29,7 @@ const AppStack = () => {
 
   useEffect(() => {
     checkIfHomePage();
+    
   }, []);
 
   useEffect(() => {
@@ -43,6 +44,8 @@ const AppStack = () => {
 
   const checkIfHomePage: any = async () => {
     let onboarding = await getItem('onboarding');
+
+    console.log(onboarding)
 
     if (onboarding == '1') {
       setIsOnboarding(false);

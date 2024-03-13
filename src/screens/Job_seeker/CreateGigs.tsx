@@ -511,6 +511,11 @@ const CreateGigs = () => {
       <FlatList
         data={[{key: 'form-key', component: <CreateForm />}]}
         renderItem={({item}) => item.component}
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingBottom: responsiveHeight(5),
+        }}
+        ListFooterComponent={<View style={{height: 100, backgroundColor:"white"}}/>}
       />
     </BottomSheetModalProvider>
     // </KeyboardAwareScrollView>

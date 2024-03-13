@@ -1,11 +1,61 @@
 import {View, Text, Image} from 'react-native';
-import React from 'react';
+import React, {useEffect} from 'react';
 import {
   responsiveFontSize,
   responsiveHeight,
 } from 'react-native-responsive-dimensions';
+import {MessageStore} from '../Job_seeker/helper/MessageStore';
+import {formatDistanceToNow} from 'date-fns';
+import {useIsFocused} from '@react-navigation/native';
+import {useSocket} from '../../contexts/SocketContext';
+import {useGlobalStore} from '../../global/store';
 
 const Conversation = ({data}: any) => {
+  const isFocused = useIsFocused();
+  const socket = useSocket();
+  const user = useGlobalStore((state: any) => state.user);
+  const [lastMessage, setLastMessage] = React.useState({} as any);
+
+  const getLastMesssage = async () => {
+    const response = await (MessageStore.getState() as any).getLastMessage(
+      data?._id,
+    );
+    setLastMessage(response.result);
+    console.log(response.result, 'last message');
+  };
+
+  useEffect(() => {
+    if (isFocused) {
+      getLastMesssage();
+    }
+  }, [isFocused]);
+
+  useEffect(() => {
+    const messageListener = ({sender, message, conversationId}: any) => {
+      if (conversationId === data?._id) {
+        // Append the received message to the messages state
+        setLastMessage((prevMessages: any) => {
+          const newMessage = {
+            __v: 0,
+            _id: Math.random().toString(),
+            conversationId: data?._id,
+            createdAt: new Date().toISOString(),
+            msg: message,
+            senderId: sender,
+            updatedAt: new Date().toISOString(),
+          };
+          return [newMessage];
+        });
+      }
+    };
+
+    socket?.on('textMessageFromBack', messageListener);
+
+    return () => {
+      socket?.off('textMessageFromBack', messageListener);
+    };
+  }, [data?._id, socket]);
+
   return (
     <View className="flex pl-5 flex-row gap-x-5 py-2 rounded-md border-b-[1.5px] border-[#e5e8e9]">
       {/* image  */}
@@ -37,20 +87,26 @@ const Conversation = ({data}: any) => {
               fontFamily: 'Montserrat-SemiBold',
               fontSize: responsiveFontSize(1.5),
             }}>
-            Online
+            {lastMessage &&
+              lastMessage[0]?.createdAt &&
+              formatDistanceToNow(new Date(lastMessage[0]?.createdAt))}
           </Text>
         </View>
         {/* message  */}
         <View>
           <Text
-            className="text-black "
+            numberOfLines={1}
             style={{
               fontFamily: 'Montserrat-Bold',
-              fontSize: responsiveFontSize(1.75),
+              fontSize: responsiveFontSize(1.5),
+              color:
+                lastMessage[0]?.senderId !== user?._id 
+                  ? lastMessage[0]?.isRead 
+                    ? '#888'
+                    : 'red' 
+                  : 'gray',
             }}>
-            {data?.conversation[0]?.title
-              ? data?.conversation[0]?.title
-              : 'Job Provider'}
+            {lastMessage[0]?.msg}
           </Text>
         </View>
       </View>
