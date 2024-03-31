@@ -9,12 +9,15 @@ import ButtonNavigatorSeeker from './ButtonNavigatorSeeker';
 import MyProfile from '../screens/Job_seeker/MyProfile';
 import TopBuyer from '../screens/Job_seeker/TopBuyer';
 import PhoneVerification from '../screens/Job_seeker/phone_verification/PhoneVerification';
+import CompletedJobs from '../screens/Job_seeker/CompletedJobs';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 export type DrawerStackParamsListSeeker = {
   Home: undefined;
   My_Profile: undefined;
   My_Review: undefined;
   Top_Buyer: undefined;
+  Completed_Jobs: undefined;
   Phone_Verify: {id: string};
 };
 
@@ -75,16 +78,25 @@ const DrawerStackSeeker = () => {
           title: 'Top Buyer',
         }}
       />
-      {/* i want it completley invisible  */}
+      <Drawer.Screen
+        name="Completed Jobs"
+        component={CompletedJobs}
+        options={{
+          drawerIcon: ({color}) => (
+            <Octicons name="workflow" size={22} color={color} />
+          ),
+        }}
+      />
+      {/*  invisible  */}
       <Drawer.Screen
         name="Phone_Verify"
         component={PhoneVerification}
         options={{
           drawerLabel: () => null,
           drawerIcon: () => null,
-          drawerItemStyle:{
-            display: 'none'
-          }
+          drawerItemStyle: {
+            display: 'none',
+          },
         }}
       />
     </Drawer.Navigator>

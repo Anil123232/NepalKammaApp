@@ -19,7 +19,7 @@ import {FetchJobStore} from './helper/FetchJobStore';
 import {getJobProps, initialJobData, JobData} from './Home';
 import {BottomSheetModal, BottomSheetModalProvider} from '@gorhom/bottom-sheet';
 import BottonSheetCardSeeker from './BottonSheetCardSeeker';
-import CardLoader from '../GlobalComponents/CardLoader';
+import CardLoader from '../GlobalComponents/Loader/CardLoader';
 import {Picker} from '@react-native-picker/picker';
 import {categoryFilter} from '../GlobalComponents/SkillsData';
 import {ErrorToast} from '../../components/ErrorToast';

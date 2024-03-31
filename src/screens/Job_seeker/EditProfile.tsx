@@ -15,12 +15,12 @@ import {SuccessToast} from '../../components/SuccessToast';
 import {ErrorToast} from '../../components/ErrorToast';
 import {UserStore} from './helper/UserStore';
 import {useGlobalStore} from '../../global/store';
+import GeoLocation from '../GlobalComponents/GeoLocation';
 
 interface editProfileProps {
   username: string;
   title: string;
   bio: string;
-  location: string;
   about_me: string;
 }
 
@@ -31,12 +31,16 @@ interface editProfileApiProps {
 const RenderItem = () => {
   const {user, checkAuth} = useGlobalStore();
   const [selectedItem, setSelectedItem] = React.useState<any>([]);
+  //location name
+  const [locationName, setLocationName] = React.useState<string>('');
+
+  //geometry
+  const [geometry, setGeometry] = React.useState<any>({});
 
   const initialValues = {
     username: user.username,
     title: user.title,
     bio: user.bio,
-    location: user.location,
     about_me: user.about_me,
   };
 
@@ -50,6 +54,9 @@ const RenderItem = () => {
       const newValues = {
         ...values,
         skills: skillsRequired?.map((skill: any) => skill.name),
+        location: locationName,
+        latitude: geometry.coordinates[1],
+        longitude: geometry.coordinates[0],
       };
 
       const response = await (
@@ -163,22 +170,10 @@ const RenderItem = () => {
                       style={{fontFamily: 'Montserrat-Medium'}}>
                       Location
                     </Text>
-                    <TextInput
-                      className="bg-[#effff8] rounded-md text-black px-2"
-                      style={{fontFamily: 'Montserrat-SemiBold'}}
-                      placeholder="Location"
-                      placeholderTextColor="#bdbebf"
-                      onChangeText={handleChange('location')}
-                      onBlur={handleBlur('location')}
-                      value={values.location}
+                    <GeoLocation
+                      setGeometry={setGeometry}
+                      setLocationName={setLocationName}
                     />
-                    {errors.location && (
-                      <Text
-                        className="text-red-500"
-                        style={{fontFamily: 'Montserrat-Regular'}}>
-                        {errors.location}
-                      </Text>
-                    )}
                   </View>
 
                   {/* About Me */}
@@ -207,59 +202,61 @@ const RenderItem = () => {
                   </View>
 
                   {/* Skills required */}
-                  <View className="gap-y-2">
-                    <Text
-                      className="text-black"
-                      style={{fontFamily: 'Montserrat-Medium'}}>
-                      Add Skills
-                    </Text>
-                    <MultiSelect
-                      hideTags={true}
-                      items={Skills_data}
-                      hideSubmitButton={true}
-                      uniqueKey="id"
-                      onSelectedItemsChange={(selectedItems): any => {
-                        setSelectedItem(selectedItems);
-                      }}
-                      selectedItems={selectedItem}
-                      selectText="Pick Skills"
-                      searchInputPlaceholderText="Search Items..."
-                      altFontFamily="Montserrat-Medium"
-                      itemFontFamily="Montserrat-Regular"
-                      itemFontSize={responsiveFontSize(1.75)}
-                      selectedItemFontFamily="Montserrat-Regular"
-                      tagRemoveIconColor="#CCC"
-                      tagBorderColor="#CCC"
-                      tagTextColor="#CCC"
-                      selectedItemTextColor="#79AC78"
-                      selectedItemIconColor="#79AC78"
-                      itemTextColor="#000"
-                      displayKey="name"
-                      searchInputStyle={{color: '#CCC'}}
-                    />
-                    <View className="flex flex-row">
-                      <FlatList
-                        horizontal={true}
-                        data={selectedItem}
-                        renderItem={({item}) => {
-                          return (
-                            <View
-                              style={{marginBottom: responsiveHeight(1)}}
-                              className="bg-gray-300 mr-2 py-1 px-2 rounded-md">
-                              <Text
-                                className="text-black"
-                                style={{
-                                  fontSize: responsiveFontSize(1.75),
-                                  fontFamily: 'Montserrat-Regular',
-                                }}>
-                                {Skills_data[item - 1].name}
-                              </Text>
-                            </View>
-                          );
+                  {user && user?.role === 'job_seeker' && (
+                    <View className="gap-y-2">
+                      <Text
+                        className="text-black"
+                        style={{fontFamily: 'Montserrat-Medium'}}>
+                        Add Skills
+                      </Text>
+                      <MultiSelect
+                        hideTags={true}
+                        items={Skills_data}
+                        hideSubmitButton={true}
+                        uniqueKey="id"
+                        onSelectedItemsChange={(selectedItems): any => {
+                          setSelectedItem(selectedItems);
                         }}
+                        selectedItems={selectedItem}
+                        selectText="Pick Skills"
+                        searchInputPlaceholderText="Search Items..."
+                        altFontFamily="Montserrat-Medium"
+                        itemFontFamily="Montserrat-Regular"
+                        itemFontSize={responsiveFontSize(1.75)}
+                        selectedItemFontFamily="Montserrat-Regular"
+                        tagRemoveIconColor="#CCC"
+                        tagBorderColor="#CCC"
+                        tagTextColor="#CCC"
+                        selectedItemTextColor="#79AC78"
+                        selectedItemIconColor="#79AC78"
+                        itemTextColor="#000"
+                        displayKey="name"
+                        searchInputStyle={{color: '#CCC'}}
                       />
+                      <View className="flex flex-row">
+                        <FlatList
+                          horizontal={true}
+                          data={selectedItem}
+                          renderItem={({item}) => {
+                            return (
+                              <View
+                                style={{marginBottom: responsiveHeight(1)}}
+                                className="bg-gray-300 mr-2 py-1 px-2 rounded-md">
+                                <Text
+                                  className="text-black"
+                                  style={{
+                                    fontSize: responsiveFontSize(1.75),
+                                    fontFamily: 'Montserrat-Regular',
+                                  }}>
+                                  {Skills_data[item - 1].name}
+                                </Text>
+                              </View>
+                            );
+                          }}
+                        />
+                      </View>
                     </View>
-                  </View>
+                  )}
 
                   {/* Add a submit button */}
                   <View>

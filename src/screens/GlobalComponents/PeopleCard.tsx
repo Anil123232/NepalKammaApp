@@ -1,6 +1,7 @@
-import {View, Text, TouchableOpacity} from 'react-native';
+import {View, Text, TouchableOpacity, Image} from 'react-native';
 import React from 'react';
 import {responsiveHeight} from 'react-native-responsive-dimensions';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 const PeopleCard = ({data, navigation, route}: any) => {
   return (
@@ -8,17 +9,28 @@ const PeopleCard = ({data, navigation, route}: any) => {
       className="flex flex-row items-center justify-between"
       style={{marginTop: responsiveHeight(2)}}>
       <View className="flex flex-row items-center">
-        <View className="w-[50px] h-[50px] rounded-full bg-gray-300"></View>
+        {data && data?.profilePic?.url && (
+          <Image
+            source={{uri: data?.profilePic.url}}
+            style={{
+              width: responsiveHeight(8),
+              height: responsiveHeight(8),
+              borderRadius: responsiveHeight(8) / 2,
+            }}
+          />
+        )}
+
         <View className="flex flex-col ml-3">
-          <View>
+          <View className='flex flex-row gap-x-2 items-center'>
             <Text
               className="text-black"
               style={{
                 fontFamily: 'Montserrat-Bold',
                 fontSize: responsiveHeight(2),
               }}>
-              {data?.sellerName}
+              {data?.username}
             </Text>
+            <MaterialIcons name="verified" size={20} color={'green'} />
           </View>
           <View>
             <Text
@@ -27,7 +39,7 @@ const PeopleCard = ({data, navigation, route}: any) => {
                 fontFamily: 'Montserrat-SemiBold',
                 fontSize: responsiveHeight(1.5),
               }}>
-              {data?.sellerDescription}
+              {data?.title || 'Freelancer'}
             </Text>
           </View>
         </View>
@@ -36,7 +48,7 @@ const PeopleCard = ({data, navigation, route}: any) => {
         <TouchableOpacity
           onPress={() => {
             navigation.navigate('Other_Profile', {
-              id: data?.id,
+              id: data?._id,
             });
           }}>
           <Text

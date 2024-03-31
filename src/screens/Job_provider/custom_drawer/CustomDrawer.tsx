@@ -24,6 +24,9 @@ type userStateProps = {
   isVerified: boolean;
   role: string;
   username: string;
+  profilePic: {
+    url: string;
+  };
 };
 
 const CustomDrawer = (props: DrawerContentComponentProps) => {
@@ -47,10 +50,17 @@ const CustomDrawer = (props: DrawerContentComponentProps) => {
         <ImageBackground
           source={require('../../../../assets/images/menu_job_provider.jpg')}
           style={{padding: 20}}>
-          <Image
-            source={require('../../../../assets/images/user-profile.jpg')}
-            style={{height: 80, width: 80, borderRadius: 40, marginBottom: 10}}
-          />
+          {user && user.profilePic && (
+            <Image
+              source={{uri: user.profilePic.url}}
+              style={{
+                height: 80,
+                width: 80,
+                borderRadius: 40,
+                marginBottom: 10,
+              }}
+            />
+          )}
           <Text
             style={{
               color: '#fff',

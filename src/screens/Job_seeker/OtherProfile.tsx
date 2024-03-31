@@ -18,7 +18,7 @@ import Cards from '../GlobalComponents/Cards';
 import {useGlobalStore} from '../../global/store';
 import {MessageStore} from './helper/MessageStore';
 import {useSocket} from '../../contexts/SocketContext';
-import OtherScreenLoader from '../GlobalComponents/OtherScreenLoader';
+import OtherScreenLoader from '../GlobalComponents/Loader/OtherScreenLoader';
 
 const OtherProfile = ({navigation, route}: any) => {
   const isFocused = useIsFocused();

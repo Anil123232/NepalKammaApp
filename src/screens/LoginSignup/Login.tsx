@@ -76,6 +76,8 @@ const Login = ({navigation}: LoginScreenProps) => {
       response.user.role === 'job_provider' &&
         navigation.replace('Job_Provider');
 
+        console.log(response.token)
+
       // setting the token in async storage
       setToken('currentUser', response.token);
     } catch (error: any) {

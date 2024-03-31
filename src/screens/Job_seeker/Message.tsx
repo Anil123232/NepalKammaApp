@@ -15,6 +15,8 @@ import {MessageStore} from './helper/MessageStore';
 import {useIsFocused} from '@react-navigation/native';
 import {useGlobalStore} from '../../global/store';
 import {useSocket} from '../../contexts/SocketContext';
+import ConversationLoader from '../GlobalComponents/Loader/ConversationLoader';
+import {ErrorToast} from '../../components/ErrorToast';
 
 interface MessageProps {
   navigation: BottomTabNavigationProp<BottomStackParamsList>;
@@ -26,6 +28,7 @@ const Message = ({navigation}: MessageProps) => {
   const user = useGlobalStore((state: any) => state.user);
   const [conversations, setConversations] = React.useState([] as any);
   const [onlineUsers, setOnlineUsers] = React.useState([] as any);
+  const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
   React.useEffect(() => {
     socket.emit('getOnlineUsers', {message: 'get online users'});
@@ -43,17 +46,30 @@ const Message = ({navigation}: MessageProps) => {
   }, [socket]);
 
   const getConversations = async () => {
-    const response = await (
-      MessageStore.getState() as any
-    ).getAllConversation();
-    setConversations(response?.result);
+    setIsLoading(true);
+    try {
+      const response = await (
+        MessageStore.getState() as any
+      ).getAllConversation();
+      setConversations(response?.result);
+    } catch (error: any) {
+      const errorMessage = error
+        .toString()
+        .replace('[Error: ', '')
+        .replace(']', '');
+      ErrorToast(errorMessage);
+    }
+    setIsLoading(false);
   };
-
   React.useEffect(() => {
     if (isFocused) {
       getConversations();
     }
   }, [isFocused]);
+
+  if (isLoading) {
+    return <ConversationLoader />;
+  }
 
   return (
     <View className="bg-white">

@@ -20,7 +20,7 @@ import {TouchableWithoutFeedback} from 'react-native-gesture-handler';
 import {BottomSheetModal, BottomSheetModalProvider} from '@gorhom/bottom-sheet';
 import BottomSheetCard from './BottomSheetCard';
 import {FetchGigStore} from './helper/FetchGigStore';
-import CardLoader from '../GlobalComponents/CardLoader';
+import CardLoader from '../GlobalComponents/Loader/CardLoader';
 import {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
 import {BottomStackParamsList} from '../../navigation/ButtonNavigator';
 import {useSocket} from '../../contexts/SocketContext';
@@ -31,6 +31,7 @@ import Search from '../GlobalComponents/Search';
 import {ErrorToast} from '../../components/ErrorToast';
 import Geolocation from 'react-native-geolocation-service';
 import useLocationStore, {LocationState} from '../../global/useLocationStore';
+import {myLocationProps} from '../Job_seeker/Home';
 
 interface logOutProps {
   navigation: StackNavigationProp<RootStackParamsList>;
@@ -72,6 +73,13 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const isFocused = useIsFocused();
 
+  //get all job details
+  // const getGigDetails = async () => {
+  //   const response = await (FetchGigStore.getState() as getJobProps).getGig();
+  //   setgigDetails(response);
+  //   setIsLoading(false);
+  // };
+
   //distance
   const [selectedDistance, setSelectedDistance] = React.useState(0);
 
@@ -88,9 +96,16 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
 
   const [isModalVisible, setModalVisible] = React.useState<boolean>(false);
 
+  const [nearByGigDetails, setNearByGigDetails] = React.useState<any>([]);
+
   const [currentPage, setCurrentPage] = React.useState<number>(1);
   const [totalPages, setTotalPages] = React.useState<number>(1);
   const [totalGigs, setTotalGigs] = React.useState<number>(0);
+
+  const [myLocation, setMyLocation] = React.useState<myLocationProps>({
+    latitude: 0,
+    longitude: 0,
+  });
 
   // ref
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
@@ -117,8 +132,8 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
     sortByRating: boolean,
     page: number,
     limit: number,
-    // lat: number,
-    // long: number,
+    lat: number,
+    long: number,
   ) => {
     try {
       const response = await (FetchGigStore.getState() as any).searchGig(
@@ -130,8 +145,8 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
         sortByRating,
         page,
         limit,
-        // lat,
-        // long,
+        lat,
+        long,
       );
       setgigDetails({
         gig: [],
@@ -159,6 +174,15 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
     setIsLoading(false);
   };
 
+  //get near by Gig
+  const getNearbyGig = async (latitude: number, longitude: number) => {
+    const response = await (FetchGigStore.getState() as any).getNearbyGig(
+      latitude,
+      longitude,
+    );
+    setNearByGigDetails(response);
+  };
+
   const requestLocationPermission = async () => {
     try {
       const granted = await PermissionsAndroid.request(
@@ -175,7 +199,10 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
         Geolocation.getCurrentPosition(
           position => {
             setLocation(position.coords.latitude, position.coords.longitude);
-
+            setMyLocation({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            });
             searchGig(
               searchText,
               selectedCategory,
@@ -185,9 +212,11 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
               sortByRating,
               1,
               5,
-              // location.latitude,
-              // location.longitude,
+              position.coords.latitude,
+              position.coords.longitude,
             );
+            getNearbyGig(position.coords.latitude, position.coords.longitude);
+
             setIsLoading(false);
           },
           error => {
@@ -203,13 +232,6 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
       ErrorToast(err.message);
     }
   };
-
-  //get all job details
-  // const getGigDetails = async () => {
-  //   const response = await (FetchGigStore.getState() as getJobProps).getGig();
-  //   setgigDetails(response);
-  //   setIsLoading(false);
-  // };
 
   const readUnreadMessage = async () => {
     await (useMessageStore.getState() as any).unreadMessageCount();
@@ -262,8 +284,8 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
       sortByRating,
       1,
       5,
-      // location.latitude,
-      // location.longitude,
+      myLocation.latitude,
+      myLocation.longitude,
     );
     console.log(
       selectedDistance,
@@ -294,8 +316,8 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
       false,
       1,
       5,
-      // location.latitude,
-      // location.longitude,
+      myLocation.latitude,
+      myLocation.longitude,
     );
   };
 
@@ -437,6 +459,19 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
                     <Cards data={item} user={user} />
                   </TouchableWithoutFeedback>
                 )}
+                ListEmptyComponent={() => (
+                  // Render this component when there's no data
+                  <View style={{paddingBottom: responsiveHeight(25)}}>
+                    <Text
+                      className="text-red-500"
+                      style={{
+                        fontFamily: 'Montserrat-Bold',
+                        fontSize: responsiveFontSize(1.75),
+                      }}>
+                      No Gigs available
+                    </Text>
+                  </View>
+                )}
                 contentContainerStyle={{
                   paddingBottom: responsiveHeight(50),
                   paddingTop: responsiveHeight(2),
@@ -448,7 +483,7 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
               <FlatList
                 keyExtractor={item => item._id.toString()}
                 initialNumToRender={5}
-                data={gigDetails?.gig?.slice(0, 5)}
+                data={nearByGigDetails?.nearByGigs?.slice(0, 5)}
                 renderItem={({item}) => (
                   <TouchableWithoutFeedback
                     onPress={() => {
@@ -457,6 +492,19 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
                     }}>
                     <Cards data={item} user={user} />
                   </TouchableWithoutFeedback>
+                )}
+                ListEmptyComponent={() => (
+                  // Render this component when there's no data
+                  <View style={{paddingBottom: responsiveHeight(25)}}>
+                    <Text
+                      className="text-red-500"
+                      style={{
+                        fontFamily: 'Montserrat-Bold',
+                        fontSize: responsiveFontSize(1.75),
+                      }}>
+                      No near by Gigs available
+                    </Text>
+                  </View>
                 )}
                 contentContainerStyle={{
                   paddingBottom: responsiveHeight(50),

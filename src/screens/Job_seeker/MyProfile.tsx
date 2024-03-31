@@ -26,7 +26,7 @@ import {BottomSheetModal, BottomSheetModalProvider} from '@gorhom/bottom-sheet';
 import EditProfile from './EditProfile';
 import {GigData, initialGigData, getJobProps} from '../Job_provider/Home';
 import {FetchGigStore} from '../Job_provider/helper/FetchGigStore';
-import CardLoader from '../GlobalComponents/CardLoader';
+import CardLoader from '../GlobalComponents/Loader/CardLoader';
 import DocumentVerify from '../GlobalComponents/DocumentVerify';
 import {axios_auth} from '../../global/config';
 import ImagePicker, {launchImageLibrary} from 'react-native-image-picker';
@@ -35,6 +35,8 @@ import {createShimmerPlaceholder} from 'react-native-shimmer-placeholder';
 import {SuccessToast} from '../../components/SuccessToast';
 import {ErrorToast} from '../../components/ErrorToast';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import {UserStore} from './helper/UserStore';
+import {useIsFocused} from '@react-navigation/native';
 
 const ShimmerPlaceHolder = createShimmerPlaceholder(LinearGradient);
 
@@ -50,10 +52,14 @@ const MyProfileComponent = ({navigation}: MyProfileProps) => {
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [currentTab, setCurrentTab] = React.useState<string>('');
   const [isUploadingImage, setIsUploadingImage] = useState<boolean>(false);
+  const [jobs, setJobs] = useState<any>([]);
+  const [singleUser, setSingleUser] = useState<any>({});
+
+  const isFocused = useIsFocused();
 
   const handleNextItemPress = (data: any) => {
     var nextIndex = (currentIndex + 1) % data.length;
-    if (nextIndex === 2) {
+    if (nextIndex === data?.length - 1) {
       nextIndex = 0;
     }
     setCurrentIndex(nextIndex);
@@ -73,15 +79,45 @@ const MyProfileComponent = ({navigation}: MyProfileProps) => {
     console.log('handleSheetChanges', index);
   }, []);
 
-  //get all job details
-  const getGigDetails = async () => {
-    const response = await (FetchGigStore.getState() as getJobProps).getGig();
-    setgigDetails(response);
+  const getSingleUser = async (id: string) => {
+    setIsLoading(true);
+    try {
+      const response = await (UserStore.getState() as any).getSingleUser(id);
+      setSingleUser(response?.user);
+      setJobs(response?.userJobs);
+    } catch (error: any) {
+      const errorMessage = error
+        .toString()
+        .replace('[Error: ', '')
+        .replace(']', '');
+      ErrorToast(errorMessage);
+    }
     setIsLoading(false);
   };
 
+  //get all job details
+  const getGigDetails = async () => {
+    try {
+      const response = await (FetchGigStore.getState() as getJobProps).getGig();
+      setgigDetails(response);
+      setIsLoading(false);
+    } catch (error: any) {
+      const errorMessage = error
+        .toString()
+        .replace('[Error: ', '')
+        .replace(']', '');
+      ErrorToast(errorMessage);
+    }
+  };
+
   React.useEffect(() => {
-    getGigDetails();
+    if (user && isFocused) {
+      if (user.role === 'job_seeker') {
+        getGigDetails();
+      } else {
+        getSingleUser(user?._id);
+      }
+    }
   }, []);
 
   const updateProfilePic = async (imageData: any) => {
@@ -223,9 +259,10 @@ const MyProfileComponent = ({navigation}: MyProfileProps) => {
                   fontFamily: 'Montserrat-Bold',
                   fontSize: responsiveHeight(1.5),
                 }}>
-                {user?.title || user?.role === 'job_seeker'
+                {/* {user?.title || user?.role === 'job_seeker'
                   ? 'I am a freelancer'
-                  : 'I am a job provider'}
+                  : 'I am a job provider'} */}
+                {user?.title || 'Edit your title'}
               </Text>
             </View>
             <View className="flex flex-row gap-x-1">
@@ -354,114 +391,180 @@ const MyProfileComponent = ({navigation}: MyProfileProps) => {
               </Text>
             </View>
           </View>
-          {/* skills  */}
-          <View className="mt-6">
+          {user && user.role === 'job_seeker' && (
+            <View className="mt-6">
+              <Text
+                className="text-black"
+                style={{
+                  fontFamily: 'Montserrat-Bold',
+                  fontSize: responsiveHeight(2),
+                }}>
+                Skills
+              </Text>
+              <View>
+                {user?.skills.length === 0 ? (
+                  <Text
+                    className="text-red-500"
+                    style={{
+                      fontSize: responsiveScreenFontSize(1.5),
+                      fontWeight: 'bold',
+                      textAlign: 'center',
+                      padding: responsiveHeight(2),
+                    }}>
+                    Skills are very important to get a job recommendation. Just
+                    click on the "Edit Profile" button to add your skills.
+                  </Text>
+                ) : (
+                  <View style={{padding: responsiveHeight(1)}}>
+                    <FlatList
+                      horizontal={true}
+                      data={user?.skills}
+                      renderItem={({item}) => {
+                        return (
+                          <View
+                            style={{marginBottom: responsiveHeight(1)}}
+                            className="border-color2 border-solid border-[1px] mr-2 py-1 px-2 rounded-md">
+                            <Text
+                              className="text-black"
+                              style={{
+                                fontSize: responsiveFontSize(1.75),
+                                fontFamily: 'Montserrat-Regular',
+                              }}>
+                              {item}
+                            </Text>
+                          </View>
+                        );
+                      }}
+                    />
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* gigs show  */}
+        {user && user.role === 'job_seeker' && (
+          <View className="flex flex-col gap-y-2">
             <Text
               className="text-black"
               style={{
                 fontFamily: 'Montserrat-Bold',
                 fontSize: responsiveHeight(2),
               }}>
-              Skills
+              My Gigs
             </Text>
             <View>
-              {user?.skills.length === 0 ? (
-                <Text
-                  className="text-red-500"
-                  style={{
-                    fontSize: responsiveScreenFontSize(1.5),
-                    fontWeight: 'bold',
-                    textAlign: 'center',
-                    padding: responsiveHeight(2),
-                  }}>
-                  Skills are very important to get a job recommendation. Just
-                  click on the "Edit Profile" button to add your skills.
-                </Text>
-              ) : (
-                <View style={{padding: responsiveHeight(1)}}>
-                  <FlatList
-                    horizontal={true}
-                    data={user?.skills}
-                    renderItem={({item}) => {
-                      return (
-                        <View
-                          style={{marginBottom: responsiveHeight(1)}}
-                          className="border-color2 border-solid border-[1px] mr-2 py-1 px-2 rounded-md">
-                          <Text
-                            className="text-black"
-                            style={{
-                              fontSize: responsiveFontSize(1.75),
-                              fontFamily: 'Montserrat-Regular',
-                            }}>
-                            {item}
-                          </Text>
-                        </View>
-                      );
-                    }}
-                  />
-                </View>
+              {/* gigs card start  */}
+              {isLoading && (
+                <FlatList
+                  data={[1, 1]}
+                  renderItem={({item, index}) => <CardLoader />}
+                />
               )}
+
+              {!isLoading && (
+                <FlatList
+                  horizontal={true}
+                  keyExtractor={item => item._id.toString()}
+                  // initialNumToRender={2}
+                  data={gigDetails?.gig?.slice(currentIndex, currentIndex + 1)}
+                  renderItem={({item}) => (
+                    <View style={{width: responsiveWidth(90)}}>
+                      <TouchableWithoutFeedback
+                        onPress={() => {
+                          // setSelectedData(item);
+                          // handlePresentModalPress();
+                        }}>
+                        <Cards data={item} />
+                      </TouchableWithoutFeedback>
+                    </View>
+                  )}
+                  contentContainerStyle={{
+                    paddingBottom: responsiveHeight(2),
+                    paddingTop: responsiveHeight(0.2),
+                  }}></FlatList>
+              )}
+
+              <TouchableOpacity
+                className="bg-color2 py-2 flex items-center justify-center rounded-md mb-3"
+                onPress={() => handleNextItemPress(gigDetails?.gig)}>
+                <Text
+                  style={{
+                    fontFamily: 'Montserrat-SemiBold',
+                    fontSize: responsiveHeight(2),
+                    color: 'white',
+                  }}>
+                  Next
+                </Text>
+              </TouchableOpacity>
+
+              {/* gits card end  */}
             </View>
           </View>
-        </View>
+        )}
+        {/* jobs show  */}
+        {user && user.role === 'job_provider' && (
+          <View
+            className="flex flex-col gap-y-2"
+            style={{marginTop: responsiveHeight(3)}}>
+            <Text
+              className="text-black"
+              style={{
+                fontFamily: 'Montserrat-Bold',
+                fontSize: responsiveHeight(2),
+              }}>
+              My Jobs
+            </Text>
+            <View>
+              {/* jobs card start  */}
+              {isLoading && (
+                <FlatList
+                  data={[1, 1]}
+                  renderItem={({item, index}) => <CardLoader />}
+                />
+              )}
 
-        {/* gigs show  */}
-        <View className="flex flex-col gap-y-2">
-          <Text
-            className="text-black"
-            style={{
-              fontFamily: 'Montserrat-Bold',
-              fontSize: responsiveHeight(2),
-            }}>
-            My Gigs
-          </Text>
-          <View>
-            {/* gigs card start  */}
-            {isLoading && (
-              <FlatList
-                data={[1, 1]}
-                renderItem={({item, index}) => <CardLoader />}
-              />
-            )}
+              {!isLoading && (
+                <FlatList
+                  horizontal={true}
+                  keyExtractor={item => item._id.toString()}
+                  // initialNumToRender={2}
+                  data={jobs?.slice(currentIndex, currentIndex + 1)}
+                  renderItem={({item}) => (
+                    <View style={{width: responsiveWidth(90)}}>
+                      <TouchableWithoutFeedback
+                        onPress={() => {
+                          // setSelectedData(item);
+                          // handlePresentModalPress();
+                        }}>
+                        <Cards data={item} user={user} useCase={'myProfile'} getButton={'not_getButton'} />
+                      </TouchableWithoutFeedback>
+                    </View>
+                  )}
+                  contentContainerStyle={{
+                    paddingBottom: responsiveHeight(2),
+                    paddingTop: responsiveHeight(0.2),
+                  }}></FlatList>
+              )}
 
-            {!isLoading && (
-              <FlatList
-                horizontal={true}
-                keyExtractor={item => item._id.toString()}
-                // initialNumToRender={2}
-                data={gigDetails?.gig?.slice(currentIndex, currentIndex + 1)}
-                renderItem={({item}) => (
-                  <View style={{width: responsiveWidth(90)}}>
-                    <TouchableWithoutFeedback
-                      onPress={() => {
-                        // setSelectedData(item);
-                        // handlePresentModalPress();
-                      }}>
-                      <Cards data={item} />
-                    </TouchableWithoutFeedback>
-                  </View>
-                )}
-                contentContainerStyle={{
-                  paddingBottom: responsiveHeight(2),
-                  paddingTop: responsiveHeight(0.2),
-                }}></FlatList>
-            )}
-            <TouchableOpacity
-              className="bg-color2 py-2 flex items-center justify-center rounded-md mb-3"
-              onPress={() => handleNextItemPress(gigDetails?.gig)}>
-              <Text
-                style={{
-                  fontFamily: 'Montserrat-SemiBold',
-                  fontSize: responsiveHeight(2),
-                  color: 'white',
-                }}>
-                Next
-              </Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                className="bg-color2 py-2 flex items-center justify-center rounded-md mb-3"
+                onPress={() => handleNextItemPress(jobs)}>
+                <Text
+                  style={{
+                    fontFamily: 'Montserrat-SemiBold',
+                    fontSize: responsiveHeight(2),
+                    color: 'white',
+                  }}>
+                  Next
+                </Text>
+              </TouchableOpacity>
 
-            {/* gits card end  */}
+              {/* jobs card end  */}
+            </View>
           </View>
-        </View>
+        )}
       </View>
       <BottomSheetModal
         ref={bottomSheetModalRef}

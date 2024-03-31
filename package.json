@@ -52,6 +52,7 @@
     "react-native-vector-icons": "^10.0.2",
     "react-native-webview": "^13.7.0",
     "reanimated": "^0.0.1-alpha",
+    "rn-all-nepal-payment": "^1.0.2",
     "rn-text-detector": "^0.0.8",
     "socket.io-client": "^4.7.4",
     "yup": "^1.3.3",

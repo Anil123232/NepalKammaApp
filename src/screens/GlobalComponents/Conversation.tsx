@@ -1,4 +1,4 @@
-import {View, Text, Image} from 'react-native';
+import {View, Text, Image, StyleSheet} from 'react-native';
 import React, {useEffect} from 'react';
 import {
   responsiveFontSize,
@@ -9,19 +9,34 @@ import {formatDistanceToNow} from 'date-fns';
 import {useIsFocused} from '@react-navigation/native';
 import {useSocket} from '../../contexts/SocketContext';
 import {useGlobalStore} from '../../global/store';
+import {ErrorToast} from '../../components/ErrorToast';
+import {createShimmerPlaceholder} from 'react-native-shimmer-placeholder';
+import LinearGradient from 'react-native-linear-gradient';
+
+const ShimmerPlaceholder = createShimmerPlaceholder(LinearGradient);
 
 const Conversation = ({data}: any) => {
   const isFocused = useIsFocused();
   const socket = useSocket();
   const user = useGlobalStore((state: any) => state.user);
   const [lastMessage, setLastMessage] = React.useState({} as any);
+  const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
   const getLastMesssage = async () => {
-    const response = await (MessageStore.getState() as any).getLastMessage(
-      data?._id,
-    );
-    setLastMessage(response.result);
-    console.log(response.result, 'last message');
+    setIsLoading(true);
+    try {
+      const response = await (MessageStore.getState() as any).getLastMessage(
+        data?._id,
+      );
+      setLastMessage(response.result);
+    } catch (error: any) {
+      const errorMessage = error
+        .toString()
+        .replace('[Error: ', '')
+        .replace(']', '');
+      ErrorToast(errorMessage);
+    }
+    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -94,24 +109,36 @@ const Conversation = ({data}: any) => {
         </View>
         {/* message  */}
         <View>
-          <Text
-            numberOfLines={1}
-            style={{
-              fontFamily: 'Montserrat-Bold',
-              fontSize: responsiveFontSize(1.5),
-              color:
-                lastMessage[0]?.senderId !== user?._id 
-                  ? lastMessage[0]?.isRead 
-                    ? '#888'
-                    : 'red' 
-                  : 'gray',
-            }}>
-            {lastMessage[0]?.msg}
-          </Text>
+          {isLoading ? (
+            <ShimmerPlaceholder style={styles.messagePlaceholder} />
+          ) : (
+            <Text
+              numberOfLines={1}
+              style={{
+                fontFamily: 'Montserrat-Bold',
+                fontSize: responsiveFontSize(1.5),
+                color:
+                  lastMessage[0]?.senderId !== user?._id
+                    ? lastMessage[0]?.isRead
+                      ? '#888'
+                      : 'red'
+                    : 'gray',
+              }}>
+              {lastMessage[0]?.msg}
+            </Text>
+          )}
         </View>
       </View>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  messagePlaceholder: {
+    width: responsiveHeight(20),
+    height: responsiveHeight(2.5),
+    borderRadius: responsiveHeight(1.25),
+  },
+});
 
 export default Conversation;

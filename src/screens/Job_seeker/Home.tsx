@@ -22,7 +22,7 @@ import {BottomSheetModal, BottomSheetModalProvider} from '@gorhom/bottom-sheet';
 import BottonSheetCardSeeker from './BottonSheetCardSeeker';
 import {DrawerStackParamsListSeeker} from '../../navigation/DrawerStackSeeker';
 import {FetchJobStore} from './helper/FetchJobStore';
-import CardLoader from '../GlobalComponents/CardLoader';
+import CardLoader from '../GlobalComponents/Loader/CardLoader';
 import Geolocation from 'react-native-geolocation-service';
 import {ErrorToast} from '../../components/ErrorToast';
 import {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';

@@ -8,8 +8,22 @@ import TopSeller from '../screens/Job_provider/TopSeller';
 import MyReview from '../screens/Job_provider/MyReview';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Octicons from 'react-native-vector-icons/Octicons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import ButtonNavigator from './ButtonNavigator';
+import MyProfile from '../screens/Job_seeker/MyProfile';
+import MyJobs from '../screens/Job_provider/MyJobs';
+import CompletedJobs from '../screens/Job_provider/CompletedJobs';
+
+export type DrawerStackParamsList = {
+  Home: undefined;
+  My_Profile: undefined;
+  My_Jobs: undefined;
+  Review: undefined;
+  TopSeller: undefined;
+  Payment : undefined;
+  Milestone: undefined;
+};
 
 const Drawer = createDrawerNavigator();
 
@@ -40,10 +54,28 @@ const DrawerStack = () => {
       />
       <Drawer.Screen
         name="My_Profile"
-        component={Profile}
+        component={MyProfile}
         options={{
           drawerIcon: ({color}) => (
             <Ionicons name="person-outline" size={22} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="My_Jobs"
+        component={MyJobs}
+        options={{
+          drawerIcon: ({color}) => (
+            <Octicons name="workflow" size={22} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="Payment"
+        component={CompletedJobs} 
+        options={{
+          drawerIcon: ({color}) => (
+            <MaterialIcons name="payment" size={22} color={color} />
           ),
         }}
       />

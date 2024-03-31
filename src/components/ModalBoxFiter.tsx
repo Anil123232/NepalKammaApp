@@ -7,6 +7,7 @@ import {
 } from 'react-native-responsive-dimensions';
 import Modal from 'react-native-modal';
 import DistanceOption from './DistanceOption';
+import {useGlobalStore} from '../global/store';
 
 const ModalBoxFilter = ({
   modalMessage,
@@ -19,6 +20,7 @@ const ModalBoxFilter = ({
   setSortByRating,
   selectedDistance,
 }: any) => {
+  const user = useGlobalStore(state => state.user);
   const [modalVisible, setModalVisible] = React.useState(false);
   const [lowToHigh, setLowToHighState] = useState(false);
   const [highToLow, setHighToLowState] = useState(false);
@@ -117,12 +119,14 @@ const ModalBoxFilter = ({
                   </Text>
                 </TouchableOpacity>
                 {/* DistanceOption component */}
-                <DistanceOption
-                  setModalVisible={setModalVisible}
-                  modalVisible={modalVisible}
-                  setSelectedDistance={setSelectedDistance}
-                  selectedDistance={selectedDistance}
-                />
+                {user && user.role === 'job_seeker' && (
+                  <DistanceOption
+                    setModalVisible={setModalVisible}
+                    modalVisible={modalVisible}
+                    setSelectedDistance={setSelectedDistance}
+                    selectedDistance={selectedDistance}
+                  />
+                )}
               </View>
               {/* button */}
               <View className="w-[100%] justify-start items-center">

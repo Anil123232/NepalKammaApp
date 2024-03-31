@@ -15,9 +15,13 @@ import Search from '../GlobalComponents/Search';
 import {userStateProps} from './Home';
 import {useGlobalStore} from '../../global/store';
 import PeopleCard from '../GlobalComponents/PeopleCard';
-import {RouteProp} from '@react-navigation/native';
+import {RouteProp, useIsFocused} from '@react-navigation/native';
 import {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
 import {BottomStackParamsList} from '../../navigation/ButtonNavigator';
+import {ErrorToast} from '../../components/ErrorToast';
+import {UserStore} from './helper/UserStore';
+import PeopleLoader from '../GlobalComponents/Loader/PeopleLoader';
+import useLocationStore, {LocationState} from '../../global/useLocationStore';
 
 interface peopleProps {
   navigation: BottomTabNavigationProp<BottomStackParamsList>;
@@ -79,10 +83,54 @@ const data = [
 
 const People = ({navigation, route}: peopleProps) => {
   const user: userStateProps = useGlobalStore((state: any) => state.user);
-  console.log('bottom', navigation.navigate);
-  console.log(route);
+  const location: LocationState = useLocationStore(
+    (state: any) => state.location,
+  );
+
+  const isFocused = useIsFocused();
 
   const [isSeller, setIsSeller] = React.useState<boolean>(true);
+  const [jobSeekers, setJobSeekers] = React.useState<any>([]);
+  const [nearByJobSeekers, setSetNearByJobSeekers] = React.useState<any>([]);
+  const [isLoading, setIsLoading] = React.useState<boolean>(true);
+
+  const getAllJobSeekers = async () => {
+    try {
+      const response = await (UserStore.getState() as any).getJobSeekers();
+      setJobSeekers(response);
+      setIsLoading(false);
+    } catch (error: any) {
+      const errorMessage = error
+        .toString()
+        .replace('[Error: ', '')
+        .replace(']', '');
+      ErrorToast(errorMessage);
+    }
+  };
+
+  const getNearByJobSeekers = async (latitude: number, longitude: number) => {
+    try {
+      const response = await (UserStore.getState() as any).getNearByJobSeekers(
+        latitude,
+        longitude,
+      );
+      setSetNearByJobSeekers(response);
+      setIsLoading(false);
+    } catch (error: any) {
+      const errorMessage = error
+        .toString()
+        .replace('[Error: ', '')
+        .replace(']', '');
+      ErrorToast(errorMessage);
+    }
+  };
+
+  React.useEffect(() => {
+    if (isFocused && location) {
+      getAllJobSeekers();
+      getNearByJobSeekers(location.latitude, location.longitude);
+    }
+  }, [isFocused, location]);
 
   return (
     <View
@@ -132,33 +180,71 @@ const People = ({navigation, route}: peopleProps) => {
         </View>
         {/* text end  */}
         {/* seller card start */}
-        {isSeller ? (
+        {isLoading && (
           <FlatList
-            keyExtractor={item => item.id.toString()}
+            data={[1, 1, 1, 1, 1]}
+            renderItem={({item, index}) => <PeopleLoader />}
+            contentContainerStyle={{
+              paddingBottom: responsiveHeight(60),
+              paddingTop: responsiveHeight(2),
+            }}
+          />
+        )}
+        {!isLoading && isSeller && (
+          <FlatList
+            keyExtractor={item => item._id.toString()}
             initialNumToRender={5}
-            data={data.slice(0, 5)}
+            data={jobSeekers?.users}
             renderItem={({item}) => (
               <TouchableWithoutFeedback onPress={() => console.log(item)}>
                 <PeopleCard data={item} navigation={navigation} route={route} />
               </TouchableWithoutFeedback>
             )}
+            ListEmptyComponent={() => (
+              // Render this component when there's no data
+              <View style={{paddingBottom: responsiveHeight(25)}}>
+                <Text
+                  className="text-red-500"
+                  style={{
+                    fontFamily: 'Montserrat-Bold',
+                    fontSize: responsiveFontSize(1.75),
+                  }}>
+                  No Job Seekers Found
+                </Text>
+              </View>
+            )}
             contentContainerStyle={{
-              paddingBottom: responsiveHeight(50),
+              paddingBottom: responsiveHeight(60),
               paddingTop: responsiveHeight(2),
             }}
           />
-        ) : (
+        )}
+        {!isLoading && !isSeller && (
           <FlatList
-            keyExtractor={item => item.id.toString()}
-            data={data}
+            keyExtractor={item => item._id.toString()}
+            data={nearByJobSeekers?.nearBy}
             renderItem={({item}) => (
               <PeopleCard data={item} navigation={navigation} route={route} />
             )}
+            ListEmptyComponent={() => (
+              // Render this component when there's no data
+              <View style={{paddingBottom: responsiveHeight(25)}}>
+                <Text
+                  className="text-red-500"
+                  style={{
+                    fontFamily: 'Montserrat-Bold',
+                    fontSize: responsiveFontSize(1.75),
+                  }}>
+                  No near by Job Seekers Found
+                </Text>
+              </View>
+            )}
             contentContainerStyle={{
-              paddingBottom: responsiveHeight(50),
+              paddingBottom: responsiveHeight(80),
               paddingTop: responsiveHeight(2),
             }}></FlatList>
         )}
+
         {/* seller card end */}
       </View>
     </View>

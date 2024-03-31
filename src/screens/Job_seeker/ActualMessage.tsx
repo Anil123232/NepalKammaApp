@@ -24,7 +24,7 @@ import {Linking, Platform} from 'react-native';
 import {useSocket} from '../../contexts/SocketContext';
 import {formatDistanceToNow} from 'date-fns';
 import {useMessageStore} from '../../global/MessageCount';
-import MessageLoader from '../GlobalComponents/MessageLoader';
+import MessageLoader from '../GlobalComponents/Loader/MessageLoader';
 
 interface ActualMessageProps {
   navigation: BottomTabNavigationProp<BottomStackParamsList>;
@@ -204,48 +204,55 @@ const ActualMessage = ({navigation, route}: ActualMessageProps) => {
     };
   }, [arrivalMessage, route.params?.conversation_id, socket]);
 
+  //back button handler
+  const backbottonHandler = () => {
+    setMessages([]);
+    navigation.navigate('Message');
+  };
+
+  if (isLoading || (Array.isArray(messages) && messages.length === 0)) {
+    return <MessageLoader />;
+  }
+
   return (
     <React.Fragment>
-      {isLoading && <MessageLoader />}
-
-      {!isLoading && (
-        <View style={styles.container}>
-          <View style={styles.header}>
-            {/* Header content */}
-            <TouchableOpacity onPress={() => navigation.navigate('Message')}>
-              <IonIcons name="chevron-back-sharp" size={30} color="gray" />
-            </TouchableOpacity>
-            <View style={styles.profile}>
-              {otherUser?.profilePic?.url && (
-                <Image
-                  source={{uri: otherUser?.profilePic?.url}}
-                  style={styles.profileImage}
-                />
-              )}
-              <Text style={styles.profileName} className="text-black">
-                {otherUser?.username}
-              </Text>
-            </View>
-            <TouchableOpacity onPress={phoneHandler}>
-              <IonIcons name="call" size={30} color="#79AC78" />
-            </TouchableOpacity>
-          </View>
-          <FlatList
-            ref={flatListRef}
-            onContentSizeChange={scrollToBottom}
-            style={styles.messagesContainer}
-            keyExtractor={(item, index) => index.toString()}
-            data={messages}
-            renderItem={({item}) => (
-              <Messages data={item} otheruser={otherUser} />
+      <View style={styles.container}>
+        <View style={styles.header}>
+          {/* Header content */}
+          <TouchableOpacity onPress={backbottonHandler}>
+            <IonIcons name="chevron-back-sharp" size={30} color="gray" />
+          </TouchableOpacity>
+          <View style={styles.profile}>
+            {otherUser?.profilePic?.url && (
+              <Image
+                source={{uri: otherUser?.profilePic?.url}}
+                style={styles.profileImage}
+              />
             )}
-            contentContainerStyle={{
-              paddingBottom: responsiveHeight(5),
-              paddingTop: responsiveHeight(2),
-            }}
-          />
+            <Text style={styles.profileName} className="text-black">
+              {otherUser?.username}
+            </Text>
+          </View>
+          <TouchableOpacity onPress={phoneHandler}>
+            <IonIcons name="call" size={30} color="#79AC78" />
+          </TouchableOpacity>
         </View>
-      )}
+        <FlatList
+          ref={flatListRef}
+          onContentSizeChange={scrollToBottom}
+          style={styles.messagesContainer}
+          keyExtractor={(item, index) => index.toString()}
+          data={messages}
+          renderItem={({item}) => (
+            <Messages data={item} otheruser={otherUser} />
+          )}
+          contentContainerStyle={{
+            paddingBottom: responsiveHeight(5),
+            paddingTop: responsiveHeight(2),
+          }}
+        />
+      </View>
+
       <View style={styles.inputContainer}>
         <TextInput
           placeholder="Type a message..."
