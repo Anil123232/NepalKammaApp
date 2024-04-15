@@ -17,6 +17,7 @@ import {
   Skills_data,
   payment_method,
   category,
+  experiesHours,
 } from '../GlobalComponents/SkillsData';
 import MultiSelect from 'react-native-multiple-select';
 import {BottomSheetModal, BottomSheetModalProvider} from '@gorhom/bottom-sheet';
@@ -26,6 +27,7 @@ import {JobStore} from './helper/JobStore';
 import {SuccessToast} from '../../components/SuccessToast';
 import {ErrorToast} from '../../components/ErrorToast';
 import GeoLocation from '../GlobalComponents/GeoLocation';
+import {useGlobalStore} from '../../global/store';
 
 interface CreateJobDetailsProps {
   title: string;
@@ -48,6 +50,8 @@ const initialValues: CreateJobDetailsProps = {
 };
 
 function CreateForm() {
+  const user: any = useGlobalStore((state: any) => state.user);
+
   // skills
   const [selectedItem, setSelectedItem] = React.useState<any>([]);
   // payment method
@@ -58,6 +62,9 @@ function CreateForm() {
   const [job_description, setJobDescription] = React.useState<string>('');
   //location name
   const [locationName, setLocationName] = React.useState<string>('');
+
+  //experies hrs
+  const [experiesHrs, setExperiesHrs] = React.useState<number>(6);
 
   //geometry
   const [geometry, setGeometry] = React.useState<any>({});
@@ -74,11 +81,13 @@ function CreateForm() {
   const handlePresentModalPress = useCallback(() => {
     bottomSheetModalRef.current?.present();
   }, []);
-  const handleSheetChanges = useCallback((index: number) => {
-    console.log('handleSheetChanges', index);
-  }, []);
+  const handleSheetChanges = useCallback((index: number) => {}, []);
 
   const handleCreateJob = async (values: CreateJobDetailsProps) => {
+    if (user?.isDocumentVerified !== 'verified') {
+      ErrorToast('Please verify your document first');
+      return;
+    }
     setIsSubmitting(true);
     try {
       const skillsRequired = selectedItem.map(
@@ -98,7 +107,9 @@ function CreateForm() {
         location: locationName,
         latitude: geometry.coordinates[1],
         longitude: geometry.coordinates[0],
+        experiesInHrs: experiesHrs,
       };
+
       const response = await (JobStore.getState() as createJobProps).createJob(
         newValues,
       );
@@ -430,6 +441,34 @@ function CreateForm() {
                         key={item.id}
                         label={item.name}
                         value={item.name}
+                      />
+                    ))}
+                  </Picker>
+                </View>
+
+                {/* Experies */}
+                <View className="gap-y-2">
+                  <Text
+                    className="text-black"
+                    style={{fontFamily: 'Montserrat-Medium'}}>
+                    Experies Hours
+                  </Text>
+                  <Picker
+                    selectedValue={experiesHrs}
+                    onValueChange={itemValue => setExperiesHrs(itemValue)}
+                    style={{
+                      height: 40,
+                      backgroundColor: '#effff8',
+                      borderRadius: 20,
+                      width: '100%',
+                      color: 'black',
+                      marginBottom: responsiveHeight(4),
+                    }}>
+                    {experiesHours.map(item => (
+                      <Picker.Item
+                        key={item.id}
+                        label={item.name}
+                        value={item.value}
                       />
                     ))}
                   </Picker>

@@ -37,6 +37,8 @@ import {ErrorToast} from '../../components/ErrorToast';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {UserStore} from './helper/UserStore';
 import {useIsFocused} from '@react-navigation/native';
+import {FlashList} from '@shopify/flash-list';
+import {ReviewStore} from './helper/ReviewStore';
 
 const ShimmerPlaceHolder = createShimmerPlaceholder(LinearGradient);
 
@@ -44,22 +46,25 @@ interface MyProfileProps {
   navigation: DrawerNavigationProp<DrawerStackParamsListSeeker>;
 }
 
-const MyProfileComponent = ({navigation}: MyProfileProps) => {
+const MyProfileComponent = React.memo(({navigation}: MyProfileProps) => {
   const {user, checkAuth} = useGlobalStore();
 
   const [currentIndex, setCurrentIndex] = useState<number>(0);
-  const [gigDetails, setgigDetails] = React.useState<GigData>(initialGigData);
+  const [gigDetails, setgigDetails] = React.useState<any>([]);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [currentTab, setCurrentTab] = React.useState<string>('');
   const [isUploadingImage, setIsUploadingImage] = useState<boolean>(false);
   const [jobs, setJobs] = useState<any>([]);
   const [singleUser, setSingleUser] = useState<any>({});
+  const [averageRating, setAverageRating] = React.useState<number>(0);
+  const [isFetchAverageRating, setIsFetchAverageRating] =
+    React.useState<boolean>(false);
 
   const isFocused = useIsFocused();
 
   const handleNextItemPress = (data: any) => {
     var nextIndex = (currentIndex + 1) % data.length;
-    if (nextIndex === data?.length - 1) {
+    if (nextIndex === 5) {
       nextIndex = 0;
     }
     setCurrentIndex(nextIndex);
@@ -75,9 +80,7 @@ const MyProfileComponent = ({navigation}: MyProfileProps) => {
   const handlePresentModalPress = useCallback(() => {
     bottomSheetModalRef.current?.present();
   }, []);
-  const handleSheetChanges = useCallback((index: number) => {
-    console.log('handleSheetChanges', index);
-  }, []);
+  const handleSheetChanges = useCallback((index: number) => {}, []);
 
   const getSingleUser = async (id: string) => {
     setIsLoading(true);
@@ -95,12 +98,13 @@ const MyProfileComponent = ({navigation}: MyProfileProps) => {
     setIsLoading(false);
   };
 
-  //get all job details
-  const getGigDetails = async () => {
+  //get all gig details
+  const getGigDetails = async (id: string) => {
     try {
-      const response = await (FetchGigStore.getState() as getJobProps).getGig();
+      const response = await (FetchGigStore.getState() as any).getSingleGigs(
+        id,
+      );
       setgigDetails(response);
-      setIsLoading(false);
     } catch (error: any) {
       const errorMessage = error
         .toString()
@@ -108,12 +112,31 @@ const MyProfileComponent = ({navigation}: MyProfileProps) => {
         .replace(']', '');
       ErrorToast(errorMessage);
     }
+    setIsLoading(false);
   };
 
+  const fetchAverageRating = useCallback(async (id: string) => {
+    setIsFetchAverageRating(true);
+    try {
+      const response = await (ReviewStore.getState() as any).getAverageRating(
+        id,
+      );
+      setAverageRating(response);
+    } catch (error: any) {
+      const errorMessage = error
+        .toString()
+        .replace('[Error: ', '')
+        .replace(']', '');
+      ErrorToast(errorMessage);
+    }
+    setIsFetchAverageRating(false);
+  }, []);
+
   React.useEffect(() => {
+    fetchAverageRating(user?._id);
     if (user && isFocused) {
       if (user.role === 'job_seeker') {
-        getGigDetails();
+        getGigDetails(user?._id);
       } else {
         getSingleUser(user?._id);
       }
@@ -172,11 +195,10 @@ const MyProfileComponent = ({navigation}: MyProfileProps) => {
 
     launchImageLibrary(options, response => {
       if (response.didCancel) {
-        console.log('User cancelled image picker');
+        ErrorToast('User cancelled image picker');
       } else if (response.errorCode) {
-        console.log('ImagePicker Error: ', response.errorMessage);
+        ErrorToast('ImagePicker Error: ' + response.errorMessage);
       } else if (response.assets) {
-        console.log(response);
         updateProfilePic(response.assets[0]);
       }
     });
@@ -250,7 +272,9 @@ const MyProfileComponent = ({navigation}: MyProfileProps) => {
                 }}>
                 {user?.username}
               </Text>
-              <MaterialIcons name="verified" size={20} color={'green'} />
+              {user?.isDocumentVerified === 'verified' && (
+                <MaterialIcons name="verified" size={20} color={'green'} />
+              )}
             </View>
             <View>
               <Text
@@ -267,14 +291,22 @@ const MyProfileComponent = ({navigation}: MyProfileProps) => {
             </View>
             <View className="flex flex-row gap-x-1">
               {/* star  */}
-              <IconIcons name="star" size={17} color="gray" />
+              <IconIcons
+                name="star"
+                size={17}
+                color={`${averageRating > 0 ? '#E2EA3B' : 'gray'}`}
+              />
               <Text
                 className="text-black"
                 style={{
                   fontFamily: 'Montserrat-SemiBold',
                   fontSize: responsiveHeight(2),
                 }}>
-                4.9
+                {isFetchAverageRating ? (
+                  <Text className="text-color2">Loading...</Text>
+                ) : (
+                  averageRating?.toFixed(1) || 0
+                )}
               </Text>
             </View>
             {/* bio */}
@@ -464,31 +496,53 @@ const MyProfileComponent = ({navigation}: MyProfileProps) => {
               )}
 
               {!isLoading && (
-                <FlatList
-                  horizontal={true}
-                  keyExtractor={item => item._id.toString()}
-                  // initialNumToRender={2}
-                  data={gigDetails?.gig?.slice(currentIndex, currentIndex + 1)}
-                  renderItem={({item}) => (
-                    <View style={{width: responsiveWidth(90)}}>
-                      <TouchableWithoutFeedback
-                        onPress={() => {
-                          // setSelectedData(item);
-                          // handlePresentModalPress();
-                        }}>
-                        <Cards data={item} />
-                      </TouchableWithoutFeedback>
-                    </View>
-                  )}
-                  contentContainerStyle={{
-                    paddingBottom: responsiveHeight(2),
-                    paddingTop: responsiveHeight(0.2),
-                  }}></FlatList>
+                <View
+                  style={{
+                    height: responsiveHeight(38),
+                    width: responsiveWidth(90),
+                  }}>
+                  <FlashList
+                    horizontal={true}
+                    keyExtractor={(item: any) => item._id.toString()}
+                    estimatedItemSize={10}
+                    data={gigDetails?.userGigs?.slice(
+                      currentIndex,
+                      currentIndex + 1,
+                    )}
+                    renderItem={({item}) => (
+                      <View style={{width: responsiveWidth(90)}}>
+                        <TouchableWithoutFeedback
+                          onPress={() => {
+                            // setSelectedData(item);
+                            // handlePresentModalPress();
+                          }}>
+                          <Cards data={item} />
+                        </TouchableWithoutFeedback>
+                      </View>
+                    )}
+                    ListEmptyComponent={() => (
+                      // Render this component when there's no data
+                      <View>
+                        <Text
+                          className="text-red-500"
+                          style={{
+                            fontFamily: 'Montserrat-Bold',
+                            fontSize: responsiveFontSize(1.75),
+                          }}>
+                          No Gigs available
+                        </Text>
+                      </View>
+                    )}
+                    contentContainerStyle={{
+                      paddingBottom: responsiveHeight(2),
+                      paddingTop: responsiveHeight(0.2),
+                    }}></FlashList>
+                </View>
               )}
 
               <TouchableOpacity
                 className="bg-color2 py-2 flex items-center justify-center rounded-md mb-3"
-                onPress={() => handleNextItemPress(gigDetails?.gig)}>
+                onPress={() => handleNextItemPress(gigDetails?.userGigs)}>
                 <Text
                   style={{
                     fontFamily: 'Montserrat-SemiBold',
@@ -526,26 +580,37 @@ const MyProfileComponent = ({navigation}: MyProfileProps) => {
               )}
 
               {!isLoading && (
-                <FlatList
-                  horizontal={true}
-                  keyExtractor={item => item._id.toString()}
-                  // initialNumToRender={2}
-                  data={jobs?.slice(currentIndex, currentIndex + 1)}
-                  renderItem={({item}) => (
-                    <View style={{width: responsiveWidth(90)}}>
-                      <TouchableWithoutFeedback
-                        onPress={() => {
-                          // setSelectedData(item);
-                          // handlePresentModalPress();
-                        }}>
-                        <Cards data={item} user={user} useCase={'myProfile'} getButton={'not_getButton'} />
-                      </TouchableWithoutFeedback>
-                    </View>
-                  )}
-                  contentContainerStyle={{
-                    paddingBottom: responsiveHeight(2),
-                    paddingTop: responsiveHeight(0.2),
-                  }}></FlatList>
+                <View
+                  style={{
+                    height: responsiveHeight(37),
+                    width: responsiveWidth(90),
+                  }}>
+                  <FlashList
+                    horizontal={true}
+                    keyExtractor={(item: any) => item._id.toString()}
+                    estimatedItemSize={10}
+                    data={jobs?.slice(currentIndex, currentIndex + 1)}
+                    renderItem={({item}) => (
+                      <View style={{width: responsiveWidth(90)}}>
+                        <TouchableWithoutFeedback
+                          onPress={() => {
+                            // setSelectedData(item);
+                            // handlePresentModalPress();
+                          }}>
+                          <Cards
+                            data={item}
+                            user={user}
+                            useCase={'myProfile'}
+                            getButton={'not_getButton'}
+                          />
+                        </TouchableWithoutFeedback>
+                      </View>
+                    )}
+                    contentContainerStyle={{
+                      paddingBottom: responsiveHeight(2),
+                      paddingTop: responsiveHeight(0.2),
+                    }}></FlashList>
+                </View>
               )}
 
               <TouchableOpacity
@@ -598,7 +663,7 @@ const MyProfileComponent = ({navigation}: MyProfileProps) => {
       </BottomSheetModal>
     </React.Fragment>
   );
-};
+});
 
 const MyProfile = ({navigation}: MyProfileProps) => {
   return (

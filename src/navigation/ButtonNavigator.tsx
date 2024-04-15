@@ -3,7 +3,7 @@ import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {JobProvider} from '../screens';
 import Create from '../screens/Job_provider/Create';
 import Message from '../screens/Job_provider/Message';
-import Notifications from '../screens/Job_provider/Notifications';
+import Notifications from '../screens/Job_seeker/Notifications';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Feather from 'react-native-vector-icons/Feather';
 import People from '../screens/Job_provider/Search';
@@ -12,6 +12,7 @@ import {StackNavigationProp} from '@react-navigation/stack';
 import OtherProfile from '../screens/Job_provider/OtherProfile';
 import ActualMessage from '../screens/Job_seeker/ActualMessage';
 import {useMessageStore} from '../global/MessageCount';
+import { useNotificationCount } from '../global/NotificationCount';
 
 export type BottomStackParamsList = {
   Home: undefined;
@@ -27,6 +28,9 @@ const Tab = createBottomTabNavigator();
 
 const ButtonNavigator = () => {
   const messageCount = useMessageStore(state => state.messageCount);
+  const notificationCount = useNotificationCount(
+    state => state.notificationCount,
+  );
 
   return (
     <Tab.Navigator
@@ -84,7 +88,7 @@ const ButtonNavigator = () => {
           tabBarIcon: ({color}) => (
             <Ionicons name="notifications-outline" size={25} color={color} />
           ),
-          tabBarBadge: 3,
+          tabBarBadge: notificationCount > 0 ? notificationCount : undefined,
         }}
       />
       <Tab.Screen

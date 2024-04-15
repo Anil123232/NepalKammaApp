@@ -2,12 +2,12 @@ import {
   View,
   Text,
   FlatList,
-  ScrollView,
   TouchableOpacity,
-  TouchableWithoutFeedback,
-  Button,
+  Platform,
+  Linking,
 } from 'react-native';
-import React, {useState} from 'react';
+import {TouchableWithoutFeedback} from 'react-native-gesture-handler';
+import React, {useCallback, useMemo, useRef, useState} from 'react';
 import {RouteProp, useIsFocused} from '@react-navigation/native';
 import {Image} from 'react-native';
 import {
@@ -22,13 +22,22 @@ import Cards from '../GlobalComponents/Cards';
 import Review from '../GlobalComponents/Review';
 import {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
 import {BottomStackParamsList} from '../../navigation/ButtonNavigator';
-import {initialGigData, GigData, getJobProps} from './Home';
 import {FetchGigStore} from './helper/FetchGigStore';
 import {UserStore} from '../Job_seeker/helper/UserStore';
 import OtherScreenLoader from '../GlobalComponents/Loader/OtherScreenLoader';
 import {MessageStore} from '../Job_seeker/helper/MessageStore';
 import {useGlobalStore} from '../../global/store';
 import {useSocket} from '../../contexts/SocketContext';
+import Rating from '../GlobalComponents/Rating';
+import {TextInput} from 'react-native-gesture-handler';
+import {ErrorToast} from '../../components/ErrorToast';
+import {ReviewStore} from '../Job_seeker/helper/ReviewStore';
+import {NotificationStore} from '../Job_seeker/helper/NotificationStore';
+import {FlashList} from '@shopify/flash-list';
+import FastImage from 'react-native-fast-image';
+import MoreModalBox from '../../components/MoreModalBox';
+import {BottomSheetModal, BottomSheetModalProvider} from '@gorhom/bottom-sheet';
+import BottomSheetCard from './BottomSheetCard';
 
 interface OtherProfileProps {
   navigation: BottomTabNavigationProp<BottomStackParamsList>;
@@ -41,123 +50,291 @@ const Loader = () => (
   </View>
 );
 
-const OtherProfile = ({navigation, route}: OtherProfileProps) => {
-  const id = route?.params.id;
-  const isFocused = useIsFocused();
-  const Mydata: any = useGlobalStore((state: any) => state.user);
-  const socket = useSocket();
+const OtherProfileRenderer = React.memo(
+  ({navigation, route}: OtherProfileProps) => {
+    const id = route?.params.id;
+    const isFocused = useIsFocused();
+    const Mydata: any = useGlobalStore((state: any) => state.user);
+    const socket = useSocket();
 
-  const [currentIndex, setCurrentIndex] = useState<number>(0);
-  const [gigDetails, setgigDetails] = React.useState<GigData>(initialGigData);
-  const [user, setUser] = React.useState<any>({});
-  const [isLoading, setIsLoading] = React.useState<boolean>(true);
+    const [currentIndex, setCurrentIndex] = useState<number>(0);
+    const [gigDetails, setgigDetails] = React.useState<any>([]);
+    const [user, setUser] = React.useState<any>({});
+    const [isLoading, setIsLoading] = React.useState<boolean>(true);
+    //is rating and review
+    const [isRating, setIsRating] = useState<boolean>(false);
 
-  const handleNextItemPress = (data: any) => {
-    var nextIndex = (currentIndex + 1) % data.length;
-    if (nextIndex === 5) {
-      nextIndex = 0;
-    }
-    setCurrentIndex(nextIndex);
-  };
+    //get review
+    const [reviewData, setReviewData] = useState<any>([]);
 
-  //get all job details
-  const getGigDetails = async () => {
-    const response = await (FetchGigStore.getState() as getJobProps).getGig();
-    setgigDetails(response);
-  };
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+    const [averageRating, setAverageRating] = useState<number>(0);
+    const [isFetchReview, setIsFetchReview] = React.useState<boolean>(false);
+    const [isFetchAverageRating, setIsFetchAverageRating] =
+      React.useState<boolean>(false);
+    const [moreModalVisible, setMoreModalVisible] =
+      React.useState<boolean>(false);
+    const [selectedData, setSelectedData] = React.useState<any>(null);
 
-  React.useEffect(() => {
-    getGigDetails();
-  }, []);
+    // ref
+    const bottomSheetModalRef = useRef<BottomSheetModal>(null);
 
-  const getSingleUser = async (id: string) => {
-    setIsLoading(true);
-    try {
-      const response = await (UserStore.getState() as any).getSingleUser(id);
-      setUser(response?.user);
-    } catch (error: any) {
-      console.log(error);
-    }
-    setIsLoading(false);
-  };
+    // variables
+    const snapPoints = useMemo(() => ['50%', '90%'], []);
 
-  React.useEffect(() => {
-    const fetchData = async () => {
+    // callbacks
+    const handlePresentModalPress = useCallback(() => {
+      bottomSheetModalRef.current?.present();
+    }, []);
+
+    const handleNextItemPress = useCallback(
+      (data: any) => {
+        var nextIndex = (currentIndex + 1) % data.length;
+        if (nextIndex === 5) {
+          nextIndex = 0;
+        }
+        setCurrentIndex(nextIndex);
+      },
+      [currentIndex],
+    );
+
+    const fetchAverageRating = useCallback(async (id: string) => {
+      setIsFetchAverageRating(true);
+      try {
+        const response = await (ReviewStore.getState() as any).getAverageRating(
+          id,
+        );
+        setAverageRating(response);
+      } catch (error: any) {
+        const errorMessage = error
+          .toString()
+          .replace('[Error: ', '')
+          .replace(']', '');
+        ErrorToast(errorMessage);
+      }
+      setIsFetchAverageRating(false);
+    }, []);
+
+    //get all gig details
+    const getGigDetails = useCallback(async (id: string) => {
+      try {
+        const response = await (FetchGigStore.getState() as any).getSingleGigs(
+          id,
+        );
+        setgigDetails(response);
+      } catch (error: any) {
+        const errorMessage = error
+          .toString()
+          .replace('[Error: ', '')
+          .replace(']', '');
+        ErrorToast(errorMessage);
+      }
+    }, []);
+
+    const getSingleUser = useCallback(async (id: string) => {
       setIsLoading(true);
       try {
-        await getGigDetails();
-        await getSingleUser(route?.params?.id);
-      } catch (error) {
-        console.log(error);
+        const response = await (UserStore.getState() as any).getSingleUser(id);
+        setUser(response?.user);
+      } catch (error: any) {
+        const errorMessage = error
+          .toString()
+          .replace('[Error: ', '')
+          .replace(']', '');
+        ErrorToast(errorMessage);
       }
       setIsLoading(false);
-    };
-    if (id && isFocused) {
-      fetchData();
-    }
-  }, [isFocused]);
+    }, []);
 
-  const backPressHandler = () => {
-    setUser({});
-    navigation.navigate('Peoples', {
-      id: '',
-    });
-  };
+    React.useEffect(() => {
+      const fetchData = async () => {
+        setIsLoading(true);
+        try {
+          await getGigDetails(route?.params?.id);
+          await getSingleUser(route?.params?.id);
+          await fetchAverageRating(route?.params?.id);
+        } catch (error: any) {
+          const errorMessage = error
+            .toString()
+            .replace('[Error: ', '')
+            .replace(']', '');
+          ErrorToast(errorMessage);
+        }
+        setIsLoading(false);
+      };
+      if (id && isFocused) {
+        fetchData();
+      }
+    }, [
+      fetchAverageRating,
+      getGigDetails,
+      getSingleUser,
+      id,
+      isFocused,
+      route?.params?.id,
+    ]);
 
-  // send message handler function
-  const sendMessageHandler = async (conversationId: string) => {
-    const newValues = {
-      conversationId: conversationId,
-      msg: `I want to ask you something about your gig.`,
-      recipientId: user?._id,
-    };
-    const response = await (MessageStore.getState() as any).createMessage(
-      newValues,
-    );
-    if (response) {
-      // getAllConversation();
-      // getAllMessages(conversationId);
-      console.log(response);
-      navigation.navigate('Actual_Message', {
-        conversation_id: conversationId,
+    const backPressHandler = useCallback(() => {
+      setUser({});
+      navigation.navigate('Peoples', {
+        id: '',
       });
-    }
+    }, [navigation]);
 
-    //for socket io
-    const messageData = {
-      sender: Mydata?._id,
-      receiver: user?._id,
-      message: newValues.msg,
-      conversationId: newValues.conversationId,
-    };
-    socket.emit('textMessage', messageData);
-  };
+    const sendMessageHandler = useCallback(
+      async (conversationId: string) => {
+        const newValues = {
+          conversationId: conversationId,
+          msg: `I want to ask you something about your gig.`,
+          recipientId: user?._id,
+        };
+        const response = await (MessageStore.getState() as any).createMessage(
+          newValues,
+        );
+        if (response) {
+          navigation.navigate('Actual_Message', {
+            conversation_id: conversationId,
+          });
+        }
 
-  const createConversation = async () => {
-    const newValues = {
-      senderId: Mydata?._id,
-      receiverId: user?._id,
-    };
-    const response = await (MessageStore.getState() as any).createConversation(
-      newValues,
+        const messageData = {
+          sender: Mydata?._id,
+          receiver: user?._id,
+          message: newValues.msg,
+          conversationId: newValues.conversationId,
+        };
+        socket.emit('textMessage', messageData);
+      },
+      [Mydata, navigation, socket, user],
     );
-    if (response) {
-      sendMessageHandler(response?.conversation._id.toString());
+
+    const createConversation = useCallback(async () => {
+      const newValues = {
+        senderId: Mydata?._id,
+        receiverId: user?._id,
+      };
+      const response = await (
+        MessageStore.getState() as any
+      ).createConversation(newValues);
+      if (response) {
+        sendMessageHandler(response?.conversation._id.toString());
+      }
+    }, [Mydata, sendMessageHandler, user]);
+
+    // apply job handler function
+    const applyJobHandler = useCallback(() => {
+      if (Mydata?.isDocumentVerified === 'verified') {
+        createConversation();
+      } else {
+        ErrorToast('Please verify your document first');
+      }
+    }, [createConversation]);
+
+    React.useEffect(() => {
+      if (isFocused && user && user.can_review && user.can_review.length > 0) {
+        const ids = user.can_review.map((item: any) => item.user);
+        if (ids.includes(Mydata?._id)) {
+          setIsRating(true);
+        } else {
+          setIsRating(false);
+        }
+      } else {
+        setIsRating(false);
+      }
+    }, [isFocused, Mydata?._id, user]);
+
+    const [rating, setRating] = useState<number>(0);
+    const [review, setReview] = useState<string>('');
+
+    const fetchReview = useCallback(async (id: string) => {
+      setIsFetchReview(true);
+      try {
+        const response = await (ReviewStore.getState() as any).getReview(id);
+        setReviewData(response);
+      } catch (error: any) {
+        const errorMessage = error
+          .toString()
+          .replace('[Error: ', '')
+          .replace(']', '');
+        ErrorToast(errorMessage);
+      }
+      setIsFetchReview(false);
+    }, []);
+
+    React.useEffect(() => {
+      if (user?._id) {
+        fetchReview(user?._id);
+      }
+    }, [fetchReview, user]);
+
+    const handleCreateNotification = useCallback(async () => {
+      try {
+        await (NotificationStore.getState() as any).createReview(
+          Mydata?._id,
+          id,
+          null,
+          null,
+          review,
+          'review',
+        );
+      } catch (error: any) {
+        const errorMessage = error
+          .toString()
+          .replace('[Error: ', '')
+          .replace(']', '');
+        ErrorToast(errorMessage);
+      }
+    }, [Mydata, id, review]);
+
+    const handleReviewSubmit = useCallback(async () => {
+      setIsSubmitting(true);
+      try {
+        await (ReviewStore.getState() as any).createReview(
+          Mydata?._id,
+          user?._id,
+          review,
+          rating,
+        );
+        handleCreateNotification();
+        fetchReview(user?._id);
+        setReview('');
+        setRating(0);
+      } catch (error: any) {
+        const errorMessage = error
+          .toString()
+          .replace('[Error: ', '')
+          .replace(']', '');
+        ErrorToast(errorMessage);
+      }
+      setIsSubmitting(false);
+    }, [Mydata, fetchReview, handleCreateNotification, rating, review, user]);
+
+    // phone handler
+    const phoneHandler = useCallback(() => {
+      if (Mydata?.isDocumentVerified !== 'verified') {
+        ErrorToast('Please verify your document first');
+        return;
+      }
+      const phoneNumber = user?.phoneNumber;
+      let phoneNumberWithPrefix = '';
+
+      if (Platform.OS === 'android') {
+        phoneNumberWithPrefix = `tel:${phoneNumber}`;
+      } else if (Platform.OS === 'ios') {
+        phoneNumberWithPrefix = `telprompt:${phoneNumber}`;
+      }
+
+      Linking.openURL(phoneNumberWithPrefix).catch(err =>
+        console.error('An error occurred: ', err),
+      );
+    }, [user?.phoneNumber]);
+
+    if (isLoading || Object.keys(user).length === 0) {
+      return <Loader />;
     }
-  };
 
-  // apply job handler function
-  const applyJobHandler = () => {
-    // setIsApplying(true);
-    createConversation();
-  };
-
-  if (isLoading || Object.keys(user).length === 0) {
-    return <Loader />;
-  }
-
-  return (
-    <ScrollView className="bg-white">
+    return (
+      // <ScrollView className="bg-white">
       <View
         className="w-[100%] flex flex-col"
         style={{padding: responsiveHeight(2)}}>
@@ -180,7 +357,7 @@ const OtherProfile = ({navigation, route}: OtherProfileProps) => {
           {/* profile pic  */}
           <View>
             {user && user?.profilePic && (
-              <Image
+              <FastImage
                 source={{uri: user?.profilePic?.url}}
                 style={{
                   width: 100,
@@ -207,14 +384,22 @@ const OtherProfile = ({navigation, route}: OtherProfileProps) => {
             </Text>
             <View className="flex flex-row gap-x-1">
               {/* star  */}
-              <IconIcons name="star" size={17} color="gray" />
+              <IconIcons
+                name="star"
+                size={17}
+                color={`${averageRating > 0 ? '#E2EA3B' : 'gray'}`}
+              />
               <Text
                 className="text-black"
                 style={{
                   fontFamily: 'Montserrat-SemiBold',
                   fontSize: responsiveHeight(2),
                 }}>
-                4.9
+                {isFetchAverageRating ? (
+                  <Text className="text-color2">Loading...</Text>
+                ) : (
+                  averageRating?.toFixed(1) || 0
+                )}
               </Text>
             </View>
             {/* bio */}
@@ -224,7 +409,16 @@ const OtherProfile = ({navigation, route}: OtherProfileProps) => {
                 fontFamily: 'Montserrat-Regular',
                 fontSize: responsiveHeight(1.75),
               }}>
-              {user?.bio}
+              {user?.bio || (
+                <Text
+                  className="text-red-500"
+                  style={{
+                    fontFamily: 'Montserrat-Bold',
+                    fontSize: responsiveHeight(1.75),
+                  }}>
+                  No bio
+                </Text>
+              )}
             </Text>
             <View className="flex flex-row gap-x-1">
               <IconIcons name="location-outline" size={17} color="#79AC78" />
@@ -234,7 +428,16 @@ const OtherProfile = ({navigation, route}: OtherProfileProps) => {
                   fontFamily: 'Montserrat-Regular',
                   fontSize: responsiveHeight(1.75),
                 }}>
-                {user?.location}
+                {user?.location || (
+                  <Text
+                    className="text-red-500"
+                    style={{
+                      fontFamily: 'Montserrat-Bold',
+                      fontSize: responsiveHeight(1.75),
+                    }}>
+                    No location
+                  </Text>
+                )}
               </Text>
             </View>
           </View>
@@ -258,31 +461,34 @@ const OtherProfile = ({navigation, route}: OtherProfileProps) => {
               </Text>
             </View>
           </TouchableOpacity>
-          <View className="py-2 px-5 bg-color2 rounded-md flex flex-row items-center gap-x-1">
-            <IconIcons name="call-outline" size={17} color="white" />
-            <Text
-              className=""
-              style={{
-                fontFamily: 'Montserrat-SemiBold',
-                fontSize: responsiveHeight(1.75),
-                color: 'white',
-              }}>
-              Call
-            </Text>
-          </View>
-
-          <View className="py-2 px-5 bg-color2 rounded-md flex flex-row items-center gap-x-1">
-            <MaterialIcon name="unfold-more" size={17} color="white" />
-            <Text
-              className=""
-              style={{
-                fontFamily: 'Montserrat-SemiBold',
-                fontSize: responsiveHeight(1.75),
-                color: 'white',
-              }}>
-              More
-            </Text>
-          </View>
+          <TouchableOpacity onPress={phoneHandler}>
+            <View className="py-2 px-5 bg-color2 rounded-md flex flex-row items-center gap-x-1">
+              <IconIcons name="call-outline" size={17} color="white" />
+              <Text
+                className=""
+                style={{
+                  fontFamily: 'Montserrat-SemiBold',
+                  fontSize: responsiveHeight(1.75),
+                  color: 'white',
+                }}>
+                Call
+              </Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setMoreModalVisible(true)}>
+            <View className="py-2 px-5 bg-color2 rounded-md flex flex-row items-center gap-x-1">
+              <MaterialIcon name="unfold-more" size={17} color="white" />
+              <Text
+                className=""
+                style={{
+                  fontFamily: 'Montserrat-SemiBold',
+                  fontSize: responsiveHeight(1.75),
+                  color: 'white',
+                }}>
+                More
+              </Text>
+            </View>
+          </TouchableOpacity>
         </View>
         {/* other details */}
         <View className="mt-6">
@@ -302,7 +508,16 @@ const OtherProfile = ({navigation, route}: OtherProfileProps) => {
                 fontFamily: 'Montserrat-Regular',
                 fontSize: responsiveHeight(1.75),
               }}>
-              {user?.about_me}
+              {user?.about_me || (
+                <Text
+                  className="text-red-500"
+                  style={{
+                    fontFamily: 'Montserrat-Bold',
+                    fontSize: responsiveHeight(1.75),
+                  }}>
+                  No about me
+                </Text>
+              )}
             </Text>
           </View>
           {/* skills  */}
@@ -316,11 +531,12 @@ const OtherProfile = ({navigation, route}: OtherProfileProps) => {
               Skills
             </Text>
             <View>
-              <View style={{padding: responsiveHeight(1)}}>
-                <FlatList
+              <View style={{height: 50, width: 130}}>
+                <FlashList
+                  estimatedItemSize={100}
                   horizontal={true}
                   data={user?.skills}
-                  renderItem={({item}) => {
+                  renderItem={({item}: any) => {
                     return (
                       <View
                         style={{marginBottom: responsiveHeight(1)}}
@@ -336,6 +552,19 @@ const OtherProfile = ({navigation, route}: OtherProfileProps) => {
                       </View>
                     );
                   }}
+                  ListEmptyComponent={() => (
+                    // Render this component when there's no data
+                    <View>
+                      <Text
+                        className="text-red-500"
+                        style={{
+                          fontFamily: 'Montserrat-Bold',
+                          fontSize: responsiveFontSize(1.75),
+                        }}>
+                        No Skills Added
+                      </Text>
+                    </View>
+                  )}
                 />
               </View>
             </View>
@@ -353,29 +582,51 @@ const OtherProfile = ({navigation, route}: OtherProfileProps) => {
           </Text>
           <View>
             {/* gigs card start  */}
-            <FlatList
-              horizontal={true}
-              keyExtractor={item => item._id.toString()}
-              // initialNumToRender={2}
-              data={gigDetails?.gig?.slice(currentIndex, currentIndex + 1)}
-              renderItem={({item}) => (
-                <View style={{width: responsiveWidth(90)}}>
-                  <TouchableWithoutFeedback
-                    onPress={() => {
-                      // setSelectedData(item);
-                      // handlePresentModalPress();
-                    }}>
-                    <Cards data={item} />
-                  </TouchableWithoutFeedback>
-                </View>
-              )}
-              contentContainerStyle={{
-                paddingBottom: responsiveHeight(2),
-                paddingTop: responsiveHeight(2),
-              }}></FlatList>
+            <View
+              style={{
+                height: responsiveHeight(38),
+                width: responsiveWidth(90),
+              }}>
+              <FlashList
+                horizontal={true}
+                keyExtractor={(item: any) => item._id.toString()}
+                estimatedItemSize={10}
+                data={gigDetails?.userGigs?.slice(
+                  currentIndex,
+                  currentIndex + 1,
+                )}
+                renderItem={({item}) => (
+                  <View style={{width: responsiveWidth(90)}}>
+                    <TouchableWithoutFeedback
+                      onPress={() => {
+                        setSelectedData(item);
+                        handlePresentModalPress();
+                      }}>
+                      <Cards data={item} />
+                    </TouchableWithoutFeedback>
+                  </View>
+                )}
+                ListEmptyComponent={() => (
+                  // Render this component when there's no data
+                  <View>
+                    <Text
+                      className="text-red-500"
+                      style={{
+                        fontFamily: 'Montserrat-Bold',
+                        fontSize: responsiveFontSize(1.75),
+                      }}>
+                      No Gigs available
+                    </Text>
+                  </View>
+                )}
+                contentContainerStyle={{
+                  paddingBottom: responsiveHeight(2),
+                  paddingTop: responsiveHeight(2),
+                }}></FlashList>
+            </View>
             <TouchableOpacity
               className="bg-color2 py-2 flex items-center justify-center rounded-md mb-3"
-              onPress={() => handleNextItemPress(gigDetails?.gig)}>
+              onPress={() => handleNextItemPress(gigDetails?.userGigs)}>
               <Text
                 style={{
                   fontFamily: 'Montserrat-SemiBold',
@@ -405,29 +656,199 @@ const OtherProfile = ({navigation, route}: OtherProfileProps) => {
                 borderBottomWidth: 1,
               }}
             />
-            <View className="flex flex-col gap-y-4">
-              {/* for one card start  */}
-              <View>
-                <Review />
-              </View>
-              {/* for one card end  */}
-              {/* make a line */}
-              <View
-                className="mb-3"
+            {isRating && (
+              <React.Fragment>
+                {/* rating input start  */}
+                <View
+                  className="flex flex-row gap-x-3"
+                  style={{marginBottom: responsiveHeight(3)}}>
+                  <View className="w-[13%]">
+                    <Image
+                      source={{uri: Mydata?.profilePic.url}}
+                      style={{height: 40, width: 40, borderRadius: 40}}
+                    />
+                  </View>
+                  <View className="w-[80%] flex flex-col gap-y-1">
+                    <Text
+                      className="text-black"
+                      style={{
+                        fontFamily: 'Montserrat-Bold',
+                        fontSize: responsiveFontSize(1.75),
+                      }}>
+                      {Mydata?.username}
+                    </Text>
+                    <Text
+                      className="text-black"
+                      style={{
+                        fontFamily: 'Montserrat-Regular',
+                        fontSize: responsiveFontSize(1.75),
+                      }}>
+                      {Mydata?.location}
+                    </Text>
+                    <Rating initialRating={rating} onRatingChange={setRating} />
+                    <TextInput
+                      multiline
+                      placeholder="Write your review..."
+                      value={review}
+                      onChangeText={setReview}
+                      style={{
+                        fontFamily: 'Montserrat-Regular',
+                        fontSize: responsiveFontSize(1.75),
+                      }}
+                      placeholderTextColor={'gray'}
+                      className="text-black border-solid border-[1px] border-color2 rounded-md p-2 w-full mt-2"
+                    />
+                    {isSubmitting && (
+                      <TouchableOpacity className="w-[100%] flex items-center justify-center py-2 px-5 bg-color2 rounded-md mt-2">
+                        <Text
+                          className="text-white"
+                          style={{
+                            fontFamily: 'Montserrat-SemiBold',
+                            fontSize: responsiveFontSize(1.75),
+                          }}>
+                          Submitting...
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                    {!isSubmitting && (
+                      <TouchableOpacity
+                        onPress={handleReviewSubmit}
+                        className="w-[100%] flex items-center justify-center py-2 px-5 bg-color2 rounded-md mt-2">
+                        <Text
+                          className="text-white"
+                          style={{
+                            fontFamily: 'Montserrat-SemiBold',
+                            fontSize: responsiveFontSize(1.75),
+                          }}>
+                          Submit
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+                {/* rating input end  */}
+                {/* make a line */}
+                <View
+                  className="mb-3"
+                  style={{
+                    borderBottomColor: 'gray',
+                    borderBottomWidth: 1,
+                  }}
+                />
+              </React.Fragment>
+            )}
+
+            {isFetchReview ? (
+              <Text
+                className="text-color2"
                 style={{
-                  borderBottomColor: 'gray',
-                  borderBottomWidth: 1,
-                }}
-              />
-              {/* for one card start  */}
-              <Review />
-              {/* for one card end  */}
+                  fontFamily: 'Montserrat-Regular',
+                  fontSize: responsiveFontSize(1.75),
+                }}>
+                Loading...
+              </Text>
+            ) : (
+              <Text
+                className="text-black"
+                style={{
+                  fontFamily: 'Montserrat-Regular',
+                  fontSize: responsiveFontSize(1.75),
+                }}>
+                Total {reviewData?.length} Reviews
+              </Text>
+            )}
+
+            <View className="flex flex-col gap-y-4">
+              {!isFetchReview && reviewData.length > 0 && (
+                <View
+                  style={{
+                    height: responsiveHeight(70),
+                    width: responsiveWidth(90),
+                  }}>
+                  <FlashList
+                    keyExtractor={(item: any) => item._id?.toString() || ''}
+                    estimatedItemSize={10}
+                    data={reviewData}
+                    renderItem={({item}) => <Review data={item} />}
+                    ListEmptyComponent={() => (
+                      // Render this component when there's no data
+                      <View style={{paddingBottom: responsiveHeight(10)}}>
+                        <Text
+                          className="text-red-500"
+                          style={{
+                            fontFamily: 'Montserrat-Bold',
+                            fontSize: responsiveFontSize(1.75),
+                          }}>
+                          No review found
+                        </Text>
+                      </View>
+                    )}
+                    contentContainerStyle={{
+                      paddingBottom: responsiveHeight(50),
+                      paddingTop: responsiveHeight(1),
+                    }}
+                    ListFooterComponent={
+                      <View style={{height: 50, backgroundColor: 'white'}} />
+                    }
+                    showsVerticalScrollIndicator={false}></FlashList>
+                </View>
+              )}
             </View>
           </View>
         </View>
+        <MoreModalBox
+          isModalVisible={moreModalVisible}
+          setIsModalVisible={setMoreModalVisible}
+          address={user?.address}
+          reportedBy={Mydata?._id}
+          reportedTo={user?._id}
+        />
+        <BottomSheetModal
+          ref={bottomSheetModalRef}
+          index={1}
+          style={{
+            backgroundColor: 'white',
+            borderRadius: 24,
+            shadowColor: '#000000',
+            shadowOffset: {
+              width: 0,
+              height: 20,
+            },
+            shadowOpacity: 0.8,
+            shadowRadius: 24,
+            elevation: 30,
+            flex: 1,
+            overflow: 'scroll',
+          }}
+          snapPoints={snapPoints}>
+          <BottomSheetCard
+            bottomSheetModalRef={bottomSheetModalRef}
+            data={selectedData}
+            navigation={navigation}
+          />
+        </BottomSheetModal>
       </View>
-    </ScrollView>
+    );
+  },
+);
+
+const OtherProfile = ({navigation, route}: OtherProfileProps) => {
+  return (
+    <BottomSheetModalProvider>
+      <FlatList
+        style={{backgroundColor: 'white'}}
+        data={[
+          {
+            key: 'form-key',
+            component: (
+              <OtherProfileRenderer navigation={navigation} route={route} />
+            ),
+          },
+        ]}
+        renderItem={({item}) => item.component}
+      />
+    </BottomSheetModalProvider>
   );
 };
 
-export default OtherProfile;
+export default React.memo(OtherProfile);

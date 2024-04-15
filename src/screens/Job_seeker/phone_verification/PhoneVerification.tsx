@@ -25,9 +25,11 @@ const PhoneVerification = ({navigation, route}: PhoneVerificationProps) => {
   const {user, checkAuth} = useGlobalStore();
   const [value, setValue] = useState<string>(user?.phoneNumber || '');
   const [formattedValue, setFormattedValue] = useState<string>('');
+  const [isVerifyLoading, setIsVerifyLoading] = useState<boolean>(false);
   const phoneInput = useRef<PhoneInput>(null);
 
   const updatePhoneDatabase = async () => {
+    setIsVerifyLoading(true);
     try {
       const responsePhone = await (
         UserStore.getState() as any
@@ -40,6 +42,7 @@ const PhoneVerification = ({navigation, route}: PhoneVerificationProps) => {
     } catch (error: any) {
       ErrorToast(error.message);
     }
+    setIsVerifyLoading(false);
   };
 
   const checkForValidation = async (countrycode: any) => {
@@ -170,7 +173,7 @@ const PhoneVerification = ({navigation, route}: PhoneVerificationProps) => {
                     fontFamily: 'Montserrat-Bold',
                     fontSize: responsiveFontSize(2.25),
                   }}>
-                  Verify
+                  {isVerifyLoading ? 'Verifying...' : 'Verify'}
                 </Text>
               </TouchableOpacity>
             </View>

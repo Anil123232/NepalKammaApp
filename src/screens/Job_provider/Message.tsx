@@ -1,5 +1,5 @@
-import {View, Text, TouchableOpacity, FlatList, Image} from 'react-native';
-import React from 'react';
+import React, {memo, useCallback, useMemo, useEffect, useState} from 'react';
+import {View, Text, TouchableOpacity, Image} from 'react-native';
 import {
   responsiveFontSize,
   responsiveHeight,
@@ -17,6 +17,9 @@ import {MessageStore} from '../Job_seeker/helper/MessageStore';
 import {useSocket} from '../../contexts/SocketContext';
 import {ErrorToast} from '../../components/ErrorToast';
 import ConversationLoader from '../GlobalComponents/Loader/ConversationLoader';
+import {useMessageStore} from '../../global/MessageCount';
+import {FlashList} from '@shopify/flash-list';
+import FastImage from 'react-native-fast-image';
 
 interface MessageProps {
   navigation: BottomTabNavigationProp<BottomStackParamsList>;
@@ -26,16 +29,15 @@ const Message = ({navigation}: MessageProps) => {
   const isFocused = useIsFocused();
   const socket = useSocket();
   const user = useGlobalStore((state: any) => state.user);
-  const [conversations, setConversations] = React.useState([] as any);
-  const [onlineUsers, setOnlineUsers] = React.useState([] as any);
-  const [isLoading, setIsLoading] = React.useState<boolean>(true);
+  const [conversations, setConversations] = useState([] as any);
+  const [onlineUsers, setOnlineUsers] = useState([] as any);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  React.useEffect(() => {
+  useEffect(() => {
     socket.emit('getOnlineUsers', {message: 'get online users'});
 
     // Event listener for 'getU' event
     socket.on('getU', (data: any) => {
-      console.log('Received data:', data);
       setOnlineUsers(data);
     });
 
@@ -45,7 +47,7 @@ const Message = ({navigation}: MessageProps) => {
     };
   }, [socket]);
 
-  const getConversations = async () => {
+  const getConversations = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await (
@@ -60,13 +62,36 @@ const Message = ({navigation}: MessageProps) => {
       ErrorToast(errorMessage);
     }
     setIsLoading(false);
-  };
+  }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isFocused) {
       getConversations();
     }
-  }, [isFocused]);
+  }, [getConversations]);
+
+  const readAllMessages = useCallback(async (conversation_id: string) => {
+    try {
+      await (MessageStore.getState() as any).readAllMessage(conversation_id);
+      useMessageStore.setState(state => ({
+        messageCount: 0,
+      }));
+    } catch (error: any) {
+      const errorMessage = error
+        .toString()
+        .replace('[Error: ', '')
+        .replace(']', '');
+      ErrorToast(errorMessage);
+    }
+  }, []);
+
+  const clickedConversationHandler = useCallback(
+    (conversationId: string) => {
+      navigation.navigate('Actual_Message', {conversation_id: conversationId});
+      readAllMessages(conversationId);
+    },
+    [navigation, readAllMessages],
+  );
 
   if (isLoading) {
     return <ConversationLoader />;
@@ -99,71 +124,20 @@ const Message = ({navigation}: MessageProps) => {
         <View>
           <View>
             <View style={{padding: responsiveHeight(1)}}>
-              <FlatList
+              <FlashList
                 horizontal={true}
+                estimatedItemSize={90}
                 data={conversations?.slice(0, 10)}
-                keyExtractor={item => item._id.toString()}
+                keyExtractor={(item:any) => item._id.toString()}
                 contentContainerStyle={{
                   padding: responsiveHeight(1),
                 }}
-                renderItem={({item}) => {
-                  return (
-                    <View
-                      style={{
-                        alignItems: 'center',
-                        marginRight: responsiveWidth(4),
-                      }}>
-                      <Image
-                        source={{uri: item?.conversation[0].profilePic?.url}}
-                        style={{
-                          width: responsiveHeight(9),
-                          height: responsiveHeight(9),
-                          borderRadius: 100,
-                        }}
-                      />
-                      {onlineUsers?.find(
-                        (u: any) => u?.userId === item?.conversation[0]?._id,
-                      ) ? (
-                        <View
-                          style={{
-                            position: 'absolute',
-                            right: 0,
-                            bottom: 12,
-                            width: responsiveHeight(2.5),
-                            height: responsiveHeight(2.5),
-                            borderRadius: 100,
-                            backgroundColor: 'green',
-                            borderWidth: 2,
-                            borderColor: 'white',
-                          }}
-                        />
-                      ) : (
-                        <View
-                          style={{
-                            position: 'absolute',
-                            right: 0,
-                            bottom: 12,
-                            width: responsiveHeight(2.5),
-                            height: responsiveHeight(2.5),
-                            borderRadius: 100,
-                            backgroundColor: 'red',
-                            borderWidth: 2,
-                            borderColor: 'white',
-                          }}
-                        />
-                      )}
-                      <Text
-                        style={{
-                          marginTop: responsiveHeight(1),
-                          fontFamily: 'Montserrat-Bold',
-                          fontSize: responsiveFontSize(1.25),
-                          color: 'black',
-                        }}>
-                        {item?.conversation[0]?.username}
-                      </Text>
-                    </View>
-                  );
-                }}
+                renderItem={({item}) => (
+                  <MemoizedConversationItem
+                    item={item}
+                    onlineUsers={onlineUsers}
+                  />
+                )}
               />
             </View>
           </View>
@@ -184,44 +158,110 @@ const Message = ({navigation}: MessageProps) => {
         </View>
 
         {/* Conversation Start  */}
-        <FlatList
-          keyExtractor={item => item._id.toString()}
-          initialNumToRender={10}
-          data={conversations?.slice(0, 10)}
-          renderItem={({item}) => (
-            <TouchableOpacity
-              style={{
-                paddingBottom:
-                  item.length < 2 ? responsiveHeight(15) : responsiveHeight(1),
-              }}
-              onPress={() =>
-                navigation.navigate('Actual_Message', {
-                  conversation_id: item._id.toString(),
-                })
-              }>
-              <Conversation data={item} />
-            </TouchableOpacity>
-          )}
-          contentContainerStyle={{
-            paddingBottom: responsiveHeight(65),
-            paddingTop: responsiveHeight(2),
-          }}
-          ListEmptyComponent={() => (
-            // Render this component when there's no data
-            <View style={{paddingBottom: responsiveHeight(25)}}>
-              <Text
-                className="text-color2"
+        <View
+          style={{height: responsiveHeight(70), width: responsiveWidth(90)}}>
+          <FlashList
+            keyExtractor={(item: any) => item._id.toString()}
+            estimatedItemSize={100}
+            data={conversations}
+            renderItem={({item}) => (
+              <TouchableOpacity
                 style={{
-                  fontFamily: 'Montserrat-Bold',
-                  fontSize: responsiveFontSize(1.75),
-                }}>
-                No Conversations
-              </Text>
-            </View>
-          )}
-        />
+                  paddingBottom:
+                    item.length < 2
+                      ? responsiveHeight(15)
+                      : responsiveHeight(1),
+                }}
+                onPress={() => clickedConversationHandler(item._id.toString())}>
+                <MemoizedConversation data={item} onlineUsers={onlineUsers} />
+              </TouchableOpacity>
+            )}
+            contentContainerStyle={{
+              paddingBottom: responsiveHeight(65),
+              paddingTop: responsiveHeight(2),
+            }}
+            ListEmptyComponent={() => (
+              // Render this component when there's no data
+              <View style={{paddingBottom: responsiveHeight(25)}}>
+                <Text
+                  className="text-color2"
+                  style={{
+                    fontFamily: 'Montserrat-Bold',
+                    fontSize: responsiveFontSize(1.75),
+                  }}>
+                  No Conversations
+                </Text>
+              </View>
+            )}
+          />
+        </View>
       </View>
     </View>
+  );
+};
+
+const MemoizedConversation = memo(({data, onlineUsers}: any) => (
+  <Conversation data={data} onlineUsers={onlineUsers} />
+));
+
+const MemoizedConversationItem = memo(({item, onlineUsers}: any) => (
+  <View
+    style={{
+      alignItems: 'center',
+      marginRight: responsiveWidth(4),
+    }}>
+    <FastImage
+      source={{uri: item?.conversation[0].profilePic?.url}}
+      style={{
+        width: responsiveHeight(9),
+        height: responsiveHeight(9),
+        borderRadius: 100,
+      }}
+    />
+    {isUserOnline(item, onlineUsers) ? (
+      <View
+        style={{
+          position: 'absolute',
+          right: 0,
+          bottom: 12,
+          width: responsiveHeight(2.5),
+          height: responsiveHeight(2.5),
+          borderRadius: 100,
+          backgroundColor: 'green',
+          borderWidth: 2,
+          borderColor: 'white',
+        }}
+      />
+    ) : (
+      <View
+        style={{
+          position: 'absolute',
+          right: 0,
+          bottom: 12,
+          width: responsiveHeight(2.5),
+          height: responsiveHeight(2.5),
+          borderRadius: 100,
+          backgroundColor: 'red',
+          borderWidth: 2,
+          borderColor: 'white',
+        }}
+      />
+    )}
+    <Text
+      style={{
+        marginTop: responsiveHeight(1),
+        fontFamily: 'Montserrat-Bold',
+        fontSize: responsiveFontSize(1.25),
+        color: 'black',
+      }}>
+      {item?.conversation[0]?.username}
+    </Text>
+  </View>
+));
+
+const isUserOnline = (item: any, onlineUsers: any) => {
+  return onlineUsers?.find(
+    (u: any) => u?.userId === item?.conversation[0]?._id,
   );
 };
 

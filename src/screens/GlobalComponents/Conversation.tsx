@@ -1,5 +1,5 @@
 import {View, Text, Image, StyleSheet} from 'react-native';
-import React, {useEffect} from 'react';
+import React, {useCallback, useEffect} from 'react';
 import {
   responsiveFontSize,
   responsiveHeight,
@@ -12,6 +12,7 @@ import {useGlobalStore} from '../../global/store';
 import {ErrorToast} from '../../components/ErrorToast';
 import {createShimmerPlaceholder} from 'react-native-shimmer-placeholder';
 import LinearGradient from 'react-native-linear-gradient';
+import FastImage from 'react-native-fast-image';
 
 const ShimmerPlaceholder = createShimmerPlaceholder(LinearGradient);
 
@@ -22,7 +23,7 @@ const Conversation = ({data}: any) => {
   const [lastMessage, setLastMessage] = React.useState({} as any);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
-  const getLastMesssage = async () => {
+  const getLastMesssage = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await (MessageStore.getState() as any).getLastMessage(
@@ -37,16 +38,16 @@ const Conversation = ({data}: any) => {
       ErrorToast(errorMessage);
     }
     setIsLoading(false);
-  };
+  }, [data?._id]);
 
   useEffect(() => {
     if (isFocused) {
       getLastMesssage();
     }
-  }, [isFocused]);
+  }, [isFocused, getLastMesssage]);
 
-  useEffect(() => {
-    const messageListener = ({sender, message, conversationId}: any) => {
+  const messageListener = useCallback(
+    ({sender, message, conversationId}: any) => {
       if (conversationId === data?._id) {
         // Append the received message to the messages state
         setLastMessage((prevMessages: any) => {
@@ -62,20 +63,23 @@ const Conversation = ({data}: any) => {
           return [newMessage];
         });
       }
-    };
+    },
+    [data?._id],
+  );
 
+  useEffect(() => {
     socket?.on('textMessageFromBack', messageListener);
 
     return () => {
       socket?.off('textMessageFromBack', messageListener);
     };
-  }, [data?._id, socket]);
+  }, [data?._id, socket, messageListener]);
 
   return (
     <View className="flex pl-5 flex-row gap-x-5 py-2 rounded-md border-b-[1.5px] border-[#e5e8e9]">
       {/* image  */}
       <View>
-        <Image
+        <FastImage
           source={{uri: data?.conversation[0]?.profilePic.url}}
           style={{
             width: responsiveHeight(8),
@@ -141,4 +145,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Conversation;
+export default React.memo(Conversation);

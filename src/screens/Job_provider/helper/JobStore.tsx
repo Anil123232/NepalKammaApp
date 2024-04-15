@@ -37,7 +37,6 @@ export const JobStore = create(set => ({
     }
   },
   GetCompletedJobs: async () => {
-    console.log('hitted');
     try {
       const response = await axios_auth.get('/job/completedJobs');
       if (response.status == 200) {

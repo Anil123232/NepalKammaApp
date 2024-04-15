@@ -1,5 +1,5 @@
 import {View, Text, TouchableOpacity, FlatList} from 'react-native';
-import React from 'react';
+import React, {useCallback, useMemo} from 'react';
 import IconIcons from 'react-native-vector-icons/Ionicons';
 import {
   responsiveFontSize,
@@ -13,6 +13,8 @@ import {useIsFocused} from '@react-navigation/native';
 import {ErrorToast} from '../../components/ErrorToast';
 import Cards from '../GlobalComponents/Cards';
 import {JobStore} from './helper/JobStore';
+import CompletedJobLoader from '../GlobalComponents/Loader/CompletedJobLoader';
+import {FlashList} from '@shopify/flash-list';
 
 interface MyJobsProps {
   navigation: DrawerNavigationProp<DrawerStackParamsList>;
@@ -23,9 +25,8 @@ const CompletedJobs = ({navigation}: MyJobsProps) => {
   const isFocused = useIsFocused();
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [jobs, setJobs] = React.useState<any>([]);
-  const [my_data, setMy_data] = React.useState<any>(null);
 
-  const getCompletedJob = async () => {
+  const getCompletedJob = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await (JobStore.getState() as any).GetCompletedJobs();
@@ -38,13 +39,15 @@ const CompletedJobs = ({navigation}: MyJobsProps) => {
       ErrorToast(errorMessage);
     }
     setIsLoading(false);
-  };
+  }, [setJobs]);
+
+  const memoizedIsFocused = useMemo(() => isFocused, [isFocused]);
 
   React.useEffect(() => {
-    if (isFocused) {
+    if (memoizedIsFocused) {
       getCompletedJob();
     }
-  }, [isFocused]);
+  }, [memoizedIsFocused, getCompletedJob]);
 
   return (
     <React.Fragment>
@@ -78,37 +81,58 @@ const CompletedJobs = ({navigation}: MyJobsProps) => {
             }}>
             Total jobs ({jobs?.length})
           </Text>
-          <FlatList
-            keyExtractor={item => item._id.toString()}
-            initialNumToRender={5}
-            data={jobs?.slice(0, 5)}
-            renderItem={({item}) => (
-              <Cards
-                data={item}
-                user={user}
-                useCase={'myProfile'}
-                getButton={'getPayment'}
-                getCompletedJob={getCompletedJob}
+          {isLoading && (
+            <View
+              style={{
+                height: responsiveHeight(100),
+                width: responsiveWidth(90),
+              }}>
+              <FlashList
+                data={[1, 1, 1, 1, 1]}
+                estimatedItemSize={5}
+                renderItem={({item, index}) => <CompletedJobLoader />}
               />
-            )}
-            ListEmptyComponent={() => (
-              // Render this component when there's no data
-              <View style={{paddingBottom: responsiveHeight(25)}}>
-                <Text
-                  className="text-red-500"
-                  style={{
-                    fontFamily: 'Montserrat-Bold',
-                    fontSize: responsiveFontSize(1.75),
-                  }}>
-                  Job's not completed yet!!
-                </Text>
-              </View>
-            )}
-            contentContainerStyle={{
-              paddingBottom: responsiveHeight(50),
-              paddingTop: responsiveHeight(2),
-            }}
-            showsVerticalScrollIndicator={false}></FlatList>
+            </View>
+          )}
+          {!isLoading && (
+            <View
+              style={{
+                height: responsiveHeight(100),
+                width: responsiveWidth(90),
+              }}>
+              <FlashList
+                keyExtractor={(item: any) => item._id.toString()}
+                estimatedItemSize={5}
+                data={jobs?.slice(0, 5)}
+                renderItem={({item}) => (
+                  <Cards
+                    data={item}
+                    user={user}
+                    useCase={'myProfile'}
+                    getButton={'getPayment'}
+                    getCompletedJob={getCompletedJob}
+                  />
+                )}
+                ListEmptyComponent={() => (
+                  // Render this component when there's no data
+                  <View style={{paddingBottom: responsiveHeight(25)}}>
+                    <Text
+                      className="text-red-500"
+                      style={{
+                        fontFamily: 'Montserrat-Bold',
+                        fontSize: responsiveFontSize(1.75),
+                      }}>
+                      Job's not completed yet!!
+                    </Text>
+                  </View>
+                )}
+                contentContainerStyle={{
+                  paddingBottom: responsiveHeight(50),
+                  paddingTop: responsiveHeight(2),
+                }}
+                showsVerticalScrollIndicator={false}></FlashList>
+            </View>
+          )}
         </View>
         {/* body end  */}
       </View>
@@ -116,4 +140,4 @@ const CompletedJobs = ({navigation}: MyJobsProps) => {
   );
 };
 
-export default CompletedJobs;
+export default React.memo(CompletedJobs);

@@ -80,4 +80,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HomeSearch;
+export default React.memo(HomeSearch);

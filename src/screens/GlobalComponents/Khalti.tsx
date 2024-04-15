@@ -10,6 +10,7 @@ import {SuccessToast} from '../../components/SuccessToast';
 import {JobStore} from '../Job_provider/helper/JobStore';
 import {ErrorToast} from '../../components/ErrorToast';
 import {KhaltiStore} from './helper/KhaltiStore';
+import {BACKEND_URL} from '../../global/config';
 
 type khalitProps = any;
 
@@ -64,17 +65,14 @@ const Khalti = ({isVisible, setIsVisible, job_data, getCompletedJob}: any) => {
     setIsVisible(false);
     const str = data.nativeEvent.data;
     const resp = JSON.parse(str);
-    console.log({resp});
     if (resp.event === 'CLOSED') {
       // handle closed action
     } else if (resp.event === 'SUCCESS') {
-      console.log({data: resp.data});
-      const response = await axios.post('http://192.168.18.206:8000/charge', {
+      const response = await axios.post(`${BACKEND_URL}/charge`, {
         token: resp.data.token,
         amount: resp.data.amount,
       });
       if (response.data.status === 'success') {
-        console.log('khalti', job_data);
         createPayment(
           job_data?.postedBy._id,
           job_data?.assignedTo._id,
@@ -84,9 +82,8 @@ const Khalti = ({isVisible, setIsVisible, job_data, getCompletedJob}: any) => {
         updateJobStatus(job_data?._id, 'Paid', job_data?.assignedTo._id);
         SuccessToast('Payment Successful');
       }
-      console.log(response.data.status);
     } else if (resp.event === 'ERROR') {
-      console.log({error: resp.data});
+      ErrorToast('Payment Failed');
     }
   };
 
@@ -113,4 +110,4 @@ const Khalti = ({isVisible, setIsVisible, job_data, getCompletedJob}: any) => {
   );
 };
 
-export default Khalti;
+export default React.memo(Khalti);

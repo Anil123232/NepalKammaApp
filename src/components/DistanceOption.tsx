@@ -85,4 +85,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default DistanceOption;
+export default React.memo(DistanceOption);

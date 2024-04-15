@@ -1,16 +1,20 @@
 import React from 'react';
 import {createDrawerNavigator} from '@react-navigation/drawer';
 import CustomDrawerSeeker from '../screens/Job_seeker/custom_drawer/CustomDrawerSeeker';
-import MyReview from '../screens/Job_seeker/MyReview';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Octicons from 'react-native-vector-icons/Octicons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import ButtonNavigatorSeeker from './ButtonNavigatorSeeker';
+import ButtonNavigatorSeeker, {
+  BottomStackParamsList,
+} from './ButtonNavigatorSeeker';
 import MyProfile from '../screens/Job_seeker/MyProfile';
 import TopBuyer from '../screens/Job_seeker/TopBuyer';
 import PhoneVerification from '../screens/Job_seeker/phone_verification/PhoneVerification';
 import CompletedJobs from '../screens/Job_seeker/CompletedJobs';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import SavedJobs from '../screens/Job_seeker/SavedJobs';
+import {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
+import MyReview from '../screens/Job_provider/MyReview';
 
 export type DrawerStackParamsListSeeker = {
   Home: undefined;
@@ -19,11 +23,16 @@ export type DrawerStackParamsListSeeker = {
   Top_Buyer: undefined;
   Completed_Jobs: undefined;
   Phone_Verify: {id: string};
+  Saved_Jobs: undefined;
 };
+
+interface savedJobsProps {
+  bottomNavigation: BottomTabNavigationProp<BottomStackParamsList>;
+}
 
 const Drawer = createDrawerNavigator();
 
-const DrawerStackSeeker = () => {
+const DrawerStackSeeker = ({bottomNavigation}: savedJobsProps) => {
   return (
     <Drawer.Navigator
       initialRouteName="Home"
@@ -70,14 +79,15 @@ const DrawerStackSeeker = () => {
       />
       <Drawer.Screen
         name="Top_Buyer"
-        component={TopBuyer}
+        // component={TopBuyer}
         options={{
           drawerIcon: ({color}) => (
             <FontAwesome name="buysellads" size={22} color={color} />
           ),
           title: 'Top Buyer',
-        }}
-      />
+        }}>
+        {props => <TopBuyer {...props} bottomNavigation={props.navigation} />}
+      </Drawer.Screen>
       <Drawer.Screen
         name="Completed Jobs"
         component={CompletedJobs}
@@ -87,6 +97,22 @@ const DrawerStackSeeker = () => {
           ),
         }}
       />
+      <Drawer.Screen
+        name="Saved Jobs"
+        // component={SavedJobs}
+        options={{
+          drawerIcon: ({color}) => (
+            <MaterialCommunityIcons
+              className="w-[30%] mt-2"
+              name="content-save-all"
+              size={20}
+              color={color}
+            />
+          ),
+        }}>
+        {props => <SavedJobs {...props} bottomNavigation={props.navigation} />}
+      </Drawer.Screen>
+
       {/*  invisible  */}
       <Drawer.Screen
         name="Phone_Verify"

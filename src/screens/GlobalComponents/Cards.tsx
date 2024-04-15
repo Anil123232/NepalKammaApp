@@ -5,7 +5,7 @@ import {
   useWindowDimensions,
   TouchableOpacity,
 } from 'react-native';
-import React from 'react';
+import React, {useCallback, useEffect} from 'react';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Entypo from 'react-native-vector-icons/Entypo';
@@ -21,10 +21,10 @@ import RenderHtml, {defaultSystemFonts} from 'react-native-render-html';
 import ModalBoxJob from '../../components/ModalBoxJob';
 import {JobStore} from '../Job_provider/helper/JobStore';
 import {ErrorToast} from '../../components/ErrorToast';
-import {UserStore} from '../Job_seeker/helper/UserStore';
 import {SuccessToast} from '../../components/SuccessToast';
-import {useGlobalStore} from '../../global/store';
 import Khalti from './Khalti';
+import {ReviewStore} from '../Job_seeker/helper/ReviewStore';
+import FastImage from 'react-native-fast-image';
 export const systemFonts = [
   ...defaultSystemFonts,
   'Montserrat-Regular',
@@ -49,8 +49,12 @@ const Cards = ({
   const [selectedUsers, setSelectedUsers] = React.useState<any[]>([]);
   const [paymentOpen, setPaymentOpen] = React.useState<boolean>(false);
   const [isVisible, setIsVisible] = React.useState<boolean>(false);
+  const [averageRating, setAverageRating] = React.useState<number>(0);
+  const [isFetchAverageRating, setIsFetchAverageRating] =
+    React.useState<boolean>(false);
+  const [isPostSaved, setIsPostSaved] = React.useState<boolean>(false);
 
-  const generateHtmlPreview = () => {
+  const generateHtmlPreview = useCallback(() => {
     if (useCase === 'myProfile') {
       let html = `<p style="color: black;">${
         user && user?.role === 'job_seeker'
@@ -68,22 +72,49 @@ const Cards = ({
       html = html.replace(/\n/g, '<br/>');
       return html;
     }
-  };
+  }, [useCase, user, data]);
+
+  useEffect(() => {
+    if (user && user?.savedPostJob.includes(data?._id)) {
+      setIsPostSaved(true);
+    }
+  }, [user, data?._id]);
 
   //update job status
-  const updateJobStatus = async (
-    id: string,
-    job_status: string,
-    selectedUserId: string,
-  ) => {
+  const updateJobStatus = useCallback(
+    async (id: string, job_status: string, selectedUserId: string) => {
+      try {
+        const response = await (JobStore.getState() as any).EditJobStatus(
+          id,
+          job_status,
+          selectedUserId ? selectedUserId : null,
+        );
+        getSingleUser(user?._id);
+        SuccessToast('Job status updated successfully');
+      } catch (error: any) {
+        const errorMessage = error
+          .toString()
+          .replace('[Error: ', '')
+          .replace(']', '');
+        ErrorToast(errorMessage);
+      }
+    },
+    [getSingleUser, user],
+  );
+
+  // handle ok function
+  const handleOkFunction = useCallback(() => {
+    updateJobStatus(data?._id, selectedStatus, selectedUsers[0]?._id);
+    setIsModalVisible(false);
+  }, [updateJobStatus, data, selectedStatus, selectedUsers]);
+
+  const fetchAverageRating = useCallback(async (id: string) => {
+    setIsFetchAverageRating(true);
     try {
-      const response = await (JobStore.getState() as any).EditJobStatus(
+      const response = await (ReviewStore.getState() as any).getAverageRating(
         id,
-        job_status,
-        selectedUserId ? selectedUserId : null,
       );
-      getSingleUser(user?._id);
-      SuccessToast('Job status updated successfully');
+      setAverageRating(response);
     } catch (error: any) {
       const errorMessage = error
         .toString()
@@ -91,13 +122,29 @@ const Cards = ({
         .replace(']', '');
       ErrorToast(errorMessage);
     }
-  };
+    setIsFetchAverageRating(false);
+  }, []);
 
-  // handle ok function
-  const handleOkFunction = () => {
-    updateJobStatus(data?._id, selectedStatus, selectedUsers[0]?._id);
-    setIsModalVisible(false);
-  };
+  const renderStars = useCallback(() => {
+    const stars = [];
+
+    for (let i = 1; i <= 5; i++) {
+      const starColor = i <= averageRating ? '#E2EA3B' : 'gray';
+      stars.push(
+        <View key={i} className="ml-1">
+          <IonIcons name="star" size={15} color={starColor} />
+        </View>,
+      );
+    }
+
+    return stars;
+  }, [averageRating]);
+
+  useEffect(() => {
+    if (data && data?.postedBy?._id) {
+      fetchAverageRating(data?.postedBy?._id);
+    }
+  }, [data, fetchAverageRating]);
 
   return (
     <View className="p-4 shadow-2xl flex flex-col bg-white">
@@ -106,12 +153,16 @@ const Cards = ({
         <View>
           {data && data?.postedBy?.profilePic?.url && (
             <View className="relative">
-              <Image
+              <FastImage
                 source={{uri: data?.postedBy?.profilePic.url}}
                 style={{height: 40, width: 40, borderRadius: 40}}
                 className="relative"
               />
-              <View className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border border-white" />
+              <View
+                className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border border-white ${
+                  data?.postedBy?.onlineStatus ? 'bg-green-500' : 'bg-red-500'
+                }`}
+              />
             </View>
           )}
         </View>
@@ -119,6 +170,7 @@ const Cards = ({
         <View className="flex flex-col gap-y-1 w-[100%]">
           <Text
             className="text-black"
+            numberOfLines={3}
             style={{
               fontFamily: 'Montserrat-Bold',
               fontSize: responsiveFontSize(1.75),
@@ -171,21 +223,32 @@ const Cards = ({
                   {data?.location}
                 </Text>
               </View>
-              <IonIcons
-                className="w-[30%]"
-                name="heart-outline"
-                size={20}
-                color="#79AC78"
-              />
+              {isPostSaved ? (
+                <MaterialCommunityIcons
+                  className="w-[30%] mt-2"
+                  name="content-save-all"
+                  size={20}
+                  color="#79AC78"
+                />
+              ) : (
+                <MaterialCommunityIcons
+                  className="w-[30%] mt-2"
+                  name="content-save-all-outline"
+                  size={20}
+                  color="#79AC78"
+                />
+              )}
               {/* <IonIcons className="w-[30%]" name="heart-sharp" size={20} color="#79AC78" /> */}
             </View>
           ) : (
             <View className="flex flex-row gap-x-2">
-              <FontAwesome name="star" size={15} color="#E2EA3B" />
-              <FontAwesome name="star" size={15} color="#E2EA3B" />
-              <FontAwesome name="star" size={15} color="#E2EA3B" />
-              <FontAwesome name="star" size={15} color="gray" />
-              <FontAwesome name="star" size={15} color="gray" />
+              <View style={{flexDirection: 'row'}}>
+                {isFetchAverageRating ? (
+                  <Text className="text-color2">Loading...</Text>
+                ) : (
+                  renderStars()
+                )}
+              </View>
             </View>
           )}
         </View>
@@ -254,10 +317,10 @@ const Cards = ({
             data?.assignedTo &&
             (data?.job_status === 'Completed' ||
               data?.job_status === 'In_Progress') && (
-              <View className="py-2 px-4 my-2 bg-color2 rounded-md flex flex-row items-center gap-x-1 w-[90%]">
-                <MaterialIcons name="assignment-add" size={17} color="white" />
+              <View className="py-2 px-4 my-2 bg-gray-100 rounded-md flex flex-row items-center gap-x-1 w-[90%]">
+                <MaterialIcons name="assignment-add" size={17} color="black" />
                 <Text
-                  className="text-white"
+                  className="text-black"
                   style={{
                     fontFamily: 'Montserrat-SemiBold',
                     fontSize: responsiveHeight(1.5),
@@ -286,7 +349,7 @@ const Cards = ({
             {/* set job done */}
             {data && data?.job_status === 'In_Progress' && (
               <TouchableOpacity onPress={() => setIsModalVisible(true)}>
-                <View className="py-2 px-3 bg-[#25258f] rounded-md flex flex-row items-center gap-x-1">
+                <View className="py-2 px-3 bg-[#25258f] w-[120px] rounded-md flex flex-row items-center gap-x-1">
                   <FontAwesome6 name="bars-progress" size={17} color="white" />
                   <Text
                     className=""
@@ -302,7 +365,7 @@ const Cards = ({
             )}
             {data && data?.job_status === 'Completed' && (
               <TouchableOpacity>
-                <View className="py-2 px-3 bg-[#589458] rounded-md flex flex-row items-center gap-x-1">
+                <View className="py-2 px-3 w-[120px] bg-[#589458] rounded-md flex flex-row items-center gap-x-1">
                   <MaterialIcons name="check" size={17} color="white" />
                   <Text
                     className=""
@@ -320,7 +383,7 @@ const Cards = ({
             {/* paid  */}
             {data && data?.job_status === 'Paid' && (
               <TouchableOpacity>
-                <View className="py-2 px-3 bg-[#589458] rounded-md flex flex-row items-center gap-x-1">
+                <View className="py-2 px-3 w-[120px] bg-[#589458] rounded-md flex flex-row items-center gap-x-1">
                   <MaterialIcons name="paid" size={17} color="white" />
                   <Text
                     className=""
@@ -337,7 +400,7 @@ const Cards = ({
 
             {data && data?.job_status === 'Cancelled' && (
               <TouchableOpacity onPress={() => setIsModalVisible(true)}>
-                <View className="py-2 px-3 bg-[#FF0000] rounded-md flex flex-row items-center gap-x-1">
+                <View className="py-2 px-3 w-[120px] bg-[#FF0000] rounded-md flex flex-row items-center gap-x-1">
                   <Entypo name="cross" size={17} color="white" />
                   <Text
                     className=""
@@ -353,7 +416,7 @@ const Cards = ({
             )}
             {data && data?.job_status === 'Pending' && (
               <TouchableOpacity onPress={() => setIsModalVisible(true)}>
-                <View className="py-2 px-3 bg-yellow-600 rounded-md flex flex-row items-center gap-x-1">
+                <View className="py-2 px-3 w-[120px] bg-yellow-600 rounded-md flex flex-row items-center gap-x-1">
                   <MaterialIcons
                     name="pending-actions"
                     size={17}
@@ -406,8 +469,6 @@ const Cards = ({
       <ModalBoxJob
         isModalVisible={isModalVisible}
         handleOkFunction={handleOkFunction}
-        responseMessage={"We've sent you an email to verify your account"}
-        modalMessage="Verify your Account"
         setSelectedStatus={setSelectedStatus}
         selectedStatus={selectedStatus}
         setIsModalVisible={setIsModalVisible}
@@ -418,4 +479,4 @@ const Cards = ({
   );
 };
 
-export default Cards;
+export default React.memo(Cards);

@@ -1,5 +1,6 @@
 import React, {createContext, useContext, useEffect, useState} from 'react';
 import {io, Socket} from 'socket.io-client';
+import { BACKEND_URL } from '../global/config';
 
 interface SocketContextProps {
   children: React.ReactNode;
@@ -19,7 +20,7 @@ export const SocketProvider: React.FC<SocketContextProps> = ({children}) => {
   const [socket, setSocket] = useState<SocketType | null>(null);
 
   useEffect(() => {
-    const newSocket = io('http://192.168.18.206:8000');
+    const newSocket = io(BACKEND_URL);
     setSocket(newSocket);
 
     // Return a cleanup function

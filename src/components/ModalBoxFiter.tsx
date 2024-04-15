@@ -1,5 +1,5 @@
 import {View, Text, TouchableOpacity} from 'react-native';
-import React, {useState} from 'react';
+import React, {useCallback, useState} from 'react';
 import {
   responsiveFontSize,
   responsiveHeight,
@@ -8,6 +8,7 @@ import {
 import Modal from 'react-native-modal';
 import DistanceOption from './DistanceOption';
 import {useGlobalStore} from '../global/store';
+import Entypo from 'react-native-vector-icons/Entypo';
 
 const ModalBoxFilter = ({
   modalMessage,
@@ -19,41 +20,42 @@ const ModalBoxFilter = ({
   setHighToLow,
   setSortByRating,
   selectedDistance,
+  setModalVisible,
 }: any) => {
   const user = useGlobalStore(state => state.user);
-  const [modalVisible, setModalVisible] = React.useState(false);
-  const [lowToHigh, setLowToHighState] = useState(false);
-  const [highToLow, setHighToLowState] = useState(false);
-  const [sortByRating, setSortByRatingState] = useState(false);
+  const [modalVisibles, setModalVisibles] = useState<boolean>(false);
+  const [lowToHigh, setLowToHighState] = useState<boolean>(false);
+  const [highToLow, setHighToLowState] = useState<boolean>(false);
+  const [sortByRating, setSortByRatingState] = useState<boolean>(false);
 
-  const handleLowToHighPress = () => {
+  const handleLowToHighPress = useCallback(() => {
     setLowToHighState(true);
     setHighToLowState(false);
     setSortByRatingState(false);
     setLowToHigh(true);
     setHighToLow(false);
     setSortByRating(false);
-  };
+  }, []);
 
-  const handleHighToLowPress = () => {
+  const handleHighToLowPress = useCallback(() => {
     setLowToHighState(false);
     setHighToLowState(true);
     setSortByRatingState(false);
     setLowToHigh(false);
     setHighToLow(true);
     setSortByRating(false);
-  };
+  }, []);
 
-  const handleSortByRatingPress = () => {
+  const handleSortByRatingPress = useCallback(() => {
     setLowToHighState(false);
     setHighToLowState(false);
     setSortByRatingState(true);
     setLowToHigh(false);
     setHighToLow(false);
     setSortByRating(true);
-  };
+  }, []);
 
-  const handleResetFunction = () => {
+  const handleResetFunction = useCallback(() => {
     setLowToHighState(false);
     setHighToLowState(false);
     setSortByRatingState(false);
@@ -61,7 +63,7 @@ const ModalBoxFilter = ({
     setHighToLow(false);
     setSortByRating(false);
     resetSearch();
-  };
+  }, []);
 
   return (
     <View>
@@ -72,6 +74,11 @@ const ModalBoxFilter = ({
               width: responsiveWidth(85),
             }}
             className="bg-white rounded-lg items-center justify-between py-8">
+            <View className="w-[100%] flex items-end justify-end px-4">
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Entypo name="circle-with-cross" size={30} color="red" />
+              </TouchableOpacity>
+            </View>
             <View className="flex items-center gap-y-3 justify-center">
               <Text
                 className="text-color2"
@@ -121,8 +128,8 @@ const ModalBoxFilter = ({
                 {/* DistanceOption component */}
                 {user && user.role === 'job_seeker' && (
                   <DistanceOption
-                    setModalVisible={setModalVisible}
-                    modalVisible={modalVisible}
+                    setModalVisible={setModalVisibles}
+                    modalVisible={modalVisibles}
                     setSelectedDistance={setSelectedDistance}
                     selectedDistance={selectedDistance}
                   />
@@ -168,4 +175,4 @@ const ModalBoxFilter = ({
   );
 };
 
-export default ModalBoxFilter;
+export default React.memo(ModalBoxFilter);

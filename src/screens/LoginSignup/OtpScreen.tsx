@@ -66,7 +66,6 @@ const OtpScreen = ({navigation, route}: OtpScreenProps) => {
     setIsVerifying(true);
     try {
       if (otp.length === 4 && id) {
-        console.log(id, otp.length);
         const data = {
           userId: id,
           otp: otp,

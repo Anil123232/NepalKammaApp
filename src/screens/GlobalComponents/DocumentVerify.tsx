@@ -30,6 +30,7 @@ import {useGlobalStore} from '../../global/store';
 import {ErrorToast} from '../../components/ErrorToast';
 import {SuccessToast} from '../../components/SuccessToast';
 import {axios_auth} from '../../global/config';
+import FastImage from 'react-native-fast-image';
 
 // const DocumentVerifyRender = () => {
 //   const [state, setState] = useState<{
@@ -163,7 +164,7 @@ const DocumentVerifyRender = ({navigation}: any) => {
   const [images, setImages] = React.useState<any>([] || null);
   const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false);
 
-  const handleImagePicker = () => {
+  const handleImagePicker = React.useCallback(() => {
     const options: any = {
       title: 'Select Picture',
       storageOptions: {
@@ -177,6 +178,7 @@ const DocumentVerifyRender = ({navigation}: any) => {
       mediaType: 'photo',
       includeBase64: false,
     };
+
     launchImageLibrary(options, response => {
       if (response.didCancel) {
         console.log('User cancelled image picker');
@@ -187,7 +189,7 @@ const DocumentVerifyRender = ({navigation}: any) => {
         setImages(twoImages);
       }
     });
-  };
+  }, [setImages]);
 
   const verifyDocumentHandler = async () => {
     setIsSubmitting(true);
@@ -368,7 +370,7 @@ const DocumentVerifyRender = ({navigation}: any) => {
         </View>
         {/* citizen ship photos end  */}
         <View className="w-[100%] bg-color2 flex items-center justify-center rounded-md">
-          <TouchableOpacity onPress={verifyDocumentHandler}>
+          {isSubmitting ? (
             <Text
               className="text-white tracking-widest"
               style={{
@@ -377,9 +379,22 @@ const DocumentVerifyRender = ({navigation}: any) => {
                 fontFamily: 'Montserrat-Bold',
                 fontSize: responsiveFontSize(2.25),
               }}>
-              {isSubmitting ? 'Requesting...' : 'Request'}
+              Requesting...
             </Text>
-          </TouchableOpacity>
+          ) : (
+            <TouchableOpacity onPress={verifyDocumentHandler}>
+              <Text
+                className="text-white tracking-widest"
+                style={{
+                  paddingVertical: responsiveHeight(1.75),
+                  paddingHorizontal: responsiveWidth(2),
+                  fontFamily: 'Montserrat-Bold',
+                  fontSize: responsiveFontSize(2.25),
+                }}>
+                {isSubmitting ? 'Requesting...' : 'Request'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </React.Fragment>
@@ -442,6 +457,77 @@ const DocumentVerify = ({bottomSheetModalRef, navigation}: any) => {
           <AntDesign name="closecircle" size={20} color="red" className="p-5" />
         </TouchableOpacity>
       </View>
+      {user && user?.isDocumentVerified === 'verified' && (
+        <View>
+          <Text
+            className="text-green-500"
+            style={{
+              fontSize: responsiveScreenFontSize(1.5),
+              fontWeight: 'bold',
+              textAlign: 'center',
+              padding: responsiveHeight(2),
+            }}>
+            Your documents are verified. You can now create a gig.
+          </Text>
+          <View className="w-[100%] flex items-center justify-center rounded-md">
+            <View className="flex flex-row justify-between w-[95%]">
+              <View
+                className="flex flex-col gap-y-2"
+                style={{
+                  padding: responsiveHeight(2),
+                }}>
+                <Text
+                  className="text-black"
+                  style={{
+                    fontSize: responsiveScreenFontSize(2),
+                    fontWeight: 'bold',
+                  }}>
+                  Phone Number
+                </Text>
+                <Text
+                  className="text-color2"
+                  style={{
+                    fontSize: responsiveScreenFontSize(1.5),
+                    fontWeight: 'bold',
+                  }}>
+                  {user?.phoneNumber}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate('Phone_Verify', {
+                    id: '2323dfdf',
+                  })
+                }>
+                <Text
+                  className="text-color2"
+                  style={{
+                    fontSize: responsiveScreenFontSize(2),
+                    fontWeight: 'bold',
+                    padding: responsiveHeight(2),
+                  }}>
+                  {user?.phoneNumber === '' ? 'Add' : 'Change'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {/* citizenship started */}
+            <ScrollView className="flex flex-row gap-x-2" horizontal>
+              {user?.documents.map((image: any) => (
+                <FastImage
+                  key={image.url}
+                  source={{uri: image.url}}
+                  style={{
+                    width: responsiveWidth(40),
+                    height: responsiveHeight(20),
+                    borderRadius: 10,
+                  }}
+                />
+              ))}
+            </ScrollView>
+            {/* citizenship end  */}
+          </View>
+        </View>
+      )}
       {user && user?.isDocumentVerified === 'Pending' && (
         <View>
           <Text
@@ -492,4 +578,4 @@ const DocumentVerify = ({bottomSheetModalRef, navigation}: any) => {
   );
 };
 
-export default DocumentVerify;
+export default React.memo(DocumentVerify);

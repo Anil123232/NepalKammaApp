@@ -36,7 +36,6 @@ const BottonSheetEditor = ({
   const {width} = useWindowDimensions();
 
   const handleSubmitOkay = () => {
-    console.log(text.length);
     if (text.length < 200) {
       ErrorToast('Job Description must be at least 200 characters');
       return;

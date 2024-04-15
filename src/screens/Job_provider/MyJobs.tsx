@@ -12,8 +12,9 @@ import {useGlobalStore} from '../../global/store';
 import {useIsFocused} from '@react-navigation/native';
 import {UserStore} from '../Job_seeker/helper/UserStore';
 import {ErrorToast} from '../../components/ErrorToast';
-import {TouchableWithoutFeedback} from 'react-native-gesture-handler';
 import Cards from '../GlobalComponents/Cards';
+import CardLoader from '../GlobalComponents/Loader/CardLoader';
+import {FlashList} from '@shopify/flash-list';
 
 interface MyJobsProps {
   navigation: DrawerNavigationProp<DrawerStackParamsList>;
@@ -25,32 +26,33 @@ const MyJobs = ({navigation}: MyJobsProps) => {
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [jobs, setJobs] = React.useState<any>([]);
   const [my_data, setMy_data] = React.useState<any>(null);
-  
 
-  const getSingleUser = async (id: string) => {
-    setIsLoading(true);
-    try {
-      const response = await (UserStore.getState() as any).getSingleUser(id);
-      setJobs(response?.userJobs);
-      setMy_data(response?.user);
-      // console.log(response)
-    } catch (error: any) {
-      const errorMessage = error
-        .toString()
-        .replace('[Error: ', '')
-        .replace(']', '');
-      ErrorToast(errorMessage);
-    }
-    setIsLoading(false);
-  };
+  const getSingleUser = React.useCallback(
+    async (id: string) => {
+      setIsLoading(true);
+      try {
+        const response = await (UserStore.getState() as any).getSingleUserProvider(id);
+        setJobs(response?.userJobs);
+        setMy_data(response?.user);
+      } catch (error: any) {
+        const errorMessage = error
+          .toString()
+          .replace('[Error: ', '')
+          .replace(']', '');
+        ErrorToast(errorMessage);
+      }
+      setIsLoading(false);
+    },
+    [setJobs, setMy_data],
+  );
 
- 
+  const memoizedIsFocused = React.useMemo(() => isFocused, [isFocused]);
+
   React.useEffect(() => {
-    if (isFocused) {
+    if (memoizedIsFocused) {
       getSingleUser(user?._id);
-      console.log("hello1")
     }
-  }, [isFocused]);
+  }, [memoizedIsFocused, getSingleUser, user?._id]);
 
   return (
     <React.Fragment>
@@ -84,31 +86,58 @@ const MyJobs = ({navigation}: MyJobsProps) => {
             }}>
             Total jobs ({jobs?.length})
           </Text>
-          <FlatList
-            keyExtractor={item => item._id.toString()}
-            initialNumToRender={5}
-            data={jobs?.slice(0, 5)}
-            renderItem={({item}) => (
-              <Cards data={item} user={user} useCase={'myProfile'} getSingleUser={getSingleUser} getButton={"getButton"} />
-            )}
-            ListEmptyComponent={() => (
-              // Render this component when there's no data
-              <View style={{paddingBottom: responsiveHeight(25)}}>
-                <Text
-                  className="text-red-500"
-                  style={{
-                    fontFamily: 'Montserrat-Bold',
-                    fontSize: responsiveFontSize(1.75),
-                  }}>
-                  You Don't post any job yet!!
-                </Text>
-              </View>
-            )}
-            contentContainerStyle={{
-              paddingBottom: responsiveHeight(50),
-              paddingTop: responsiveHeight(2),
-            }}
-            showsVerticalScrollIndicator={false}></FlatList>
+          {isLoading && (
+            <View
+              style={{
+                height: responsiveHeight(100),
+                width: responsiveWidth(90),
+              }}>
+              <FlashList
+                data={[1, 1, 1, 1, 1]}
+                estimatedItemSize={5}
+                renderItem={({item, index}) => <CardLoader />}
+              />
+            </View>
+          )}
+          {!isLoading && (
+            <View
+              style={{
+                height: responsiveHeight(100),
+                width: responsiveWidth(90),
+              }}>
+              <FlashList
+                keyExtractor={(item: any) => item._id.toString()}
+                estimatedItemSize={100}
+                data={jobs}
+                renderItem={({item}) => (
+                  <Cards
+                    data={item}
+                    user={user}
+                    useCase={'myProfile'}
+                    getSingleUser={getSingleUser}
+                    getButton={'getButton'}
+                  />
+                )}
+                ListEmptyComponent={() => (
+                  // Render this component when there's no data
+                  <View style={{paddingBottom: responsiveHeight(25)}}>
+                    <Text
+                      className="text-red-500"
+                      style={{
+                        fontFamily: 'Montserrat-Bold',
+                        fontSize: responsiveFontSize(1.75),
+                      }}>
+                      You Don't post any job yet!!
+                    </Text>
+                  </View>
+                )}
+                contentContainerStyle={{
+                  paddingBottom: responsiveHeight(50),
+                  paddingTop: responsiveHeight(2),
+                }}
+                showsVerticalScrollIndicator={false}></FlashList>
+            </View>
+          )}
         </View>
         {/* body end  */}
       </View>
@@ -116,4 +145,4 @@ const MyJobs = ({navigation}: MyJobsProps) => {
   );
 };
 
-export default MyJobs;
+export default React.memo(MyJobs);

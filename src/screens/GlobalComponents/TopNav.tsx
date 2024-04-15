@@ -6,6 +6,7 @@ import {
   responsiveWidth,
 } from 'react-native-responsive-dimensions';
 import {DrawerStackParamsListSeeker} from '../../navigation/DrawerStackSeeker';
+import FastImage from 'react-native-fast-image';
 
 const TopNav = ({props, user}: any) => {
   return (
@@ -52,9 +53,15 @@ const TopNav = ({props, user}: any) => {
       <TouchableOpacity onPress={() => props.navigate('My_Profile')}>
         <View>
           {user?.profilePic.url && (
-            <Image
+            <FastImage
               source={{uri: user?.profilePic.url}}
-              style={{height: 40, width: 40, borderRadius: 40}}
+              style={{
+                height: 40,
+                width: 40,
+                borderRadius: 20,
+                borderWidth: 2, 
+                borderColor: '#79AC78', 
+              }}
             />
           )}
         </View>
@@ -63,4 +70,4 @@ const TopNav = ({props, user}: any) => {
   );
 };
 
-export default TopNav;
+export default React.memo(TopNav);

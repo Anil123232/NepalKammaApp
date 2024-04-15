@@ -19,14 +19,12 @@ import {category} from '../GlobalComponents/SkillsData';
 import {BottomSheetModal, BottomSheetModalProvider} from '@gorhom/bottom-sheet';
 import {Picker} from '@react-native-picker/picker';
 import BottonSheetEditorSeeker from './BottonSheetEditorSeeker';
-import ImagePicker from 'react-native-image-crop-picker';
-import Swiper from 'react-native-swiper';
-import axios from 'axios';
 import {SuccessToast} from '../../components/SuccessToast';
 import {CreateGigStore} from './helper/CreateGigStore';
 import {ErrorToast} from '../../components/ErrorToast';
 import {launchImageLibrary} from 'react-native-image-picker';
 import {axios_auth} from '../../global/config';
+import {useGlobalStore} from '../../global/store';
 
 interface CreateGigsProps {
   title: string;
@@ -43,6 +41,8 @@ interface createJobProps {
 }
 
 function CreateForm() {
+  const user: any = useGlobalStore((state: any) => state.user);
+
   // category
   const [selectedCategory, setSelectedCategory] = React.useState<string>('');
   // job description
@@ -61,125 +61,13 @@ function CreateForm() {
   const handlePresentModalPress = useCallback(() => {
     bottomSheetModalRef.current?.present();
   }, []);
-  const handleSheetChanges = useCallback((index: number) => {
-    console.log('handleSheetChanges', index);
-  }, []);
-
-  // async function imageUpload() {
-  //   console.log('hello to at');
-  //   try {
-  //     SuccessToast('Uploading Image');
-  //     const data = new FormData();
-  //     const imageUri = images; // Example image URI
-
-  //     // Read the file content
-  //     const response = await fetch(imageUri);
-  //     const blob = await response.blob();
-
-  //     // Append the file content to FormData
-  //     data.append('image', {
-  //       uri: imageUri,
-  //       type: 'image/jpeg', // Adjust the type according to your image type
-  //       name: 'image.jpg', // Adjust the file name as needed
-  //       blob,
-  //     });
-
-  //     // Send the FormData to the server
-  //     const uploadResponse = await fetch('http://192.168.18.204:8000/upload', {
-  //       method: 'POST',
-  //       body: data,
-  //       headers: {
-  //         'Content-Type': 'multipart/form-data',
-  //       },
-  //     });
-
-  //     const json = await uploadResponse.json();
-  //     console.log('Image upload response:', json);
-  //   } catch (err) {
-  //     console.error('Error during image upload:', err);
-  //   }
-  // }
-
-  // async function imageUpload() {
-  //   console.log('hello to at');
-  //   try {
-  //     var photo = {
-  //       uri: images,
-  //       type: 'image/jpeg',
-  //       name: 'photo.jpg',
-  //     };
-
-  //     console.log(images);
-
-  //     var body = new FormData();
-  //     body.append('image', photo);
-
-  //     // axios({
-  //     //   method: 'post',
-  //     //   url: 'http://192.168.18.204:8000/upload',
-  //     //   data: body,
-  //     //   headers: {
-  //     //     'content-type': 'multipart/form-data',
-  //     //     Accept: 'application/json',
-  //     //   },
-  //     // })
-  //     //   .then(result => {
-  //     //     console.log(result);
-  //     //     // setProfilePhoto(result.data.result.profilePic);
-  //     //     // window.location.reload();
-  //     //   })
-  //     //   .catch(error => console.error(error.message));
-  //     // const json = await response.json();
-  //     // console.log('Image upload response:', json);
-  //   } catch (err) {
-  //     console.error('Error during image upload:', err);
-  //   }
-  // }
-
-  // const handleCreateJob = async (values: any) => {
-  //   try {
-  //     if (!Array.isArray(images) || images.length === 0) {
-  //       return ErrorToast('Please add images');
-  //     }
-  //     console.log('hello from create job');
-
-  //     // const formData = new FormData();
-
-  //     // for (let i = 0; i < images.length; i++) {
-  //     //   // Append each image with the key "files"
-  //     //   formData.append(`files[]`, {
-  //     //     uri: images[i].uri,
-  //     //     type: images[i].type,
-  //     //     name: images[i].fileName,
-  //     //   });
-  //     // }
-
-  //     // Create newValues object
-  //     const newValues = {
-  //       ...values,
-  //       category: selectedCategory,
-  //       gig_description: gig_description,
-  //       images: images,
-  //     };
-
-  //     const response = await (CreateGigStore.getState() as any).createGig(
-  //       newValues,
-  //     );
-  //     if (response) {
-  //       SuccessToast('Gig Created Successfully');
-  //       setIsSubmitting(true);
-  //     }
-  //   } catch (error: any) {
-  //     console.log(error);
-  //     const errorMessage = error
-  //       .toString()
-  //       .replace('[Error: ', '')
-  //       .replace(']', '');
-  //     ErrorToast(errorMessage);
-  //   }
-  // };
+  const handleSheetChanges = useCallback((index: number) => {}, []);
 
   const handleCreateJob = async (values: any) => {
+    if (user?.isDocumentVerified !== 'verified') {
+      ErrorToast('Please verify your document first');
+      return;
+    }
     setIsSubmitting(true);
     try {
       if (!Array.isArray(images) || images.length === 0) {
@@ -235,7 +123,6 @@ function CreateForm() {
         setIsSubmitting(false);
       }
     } catch (error: any) {
-      console.log(error);
       const errorMessage = error
         .toString()
         .replace('[Error: ', '')
@@ -260,9 +147,9 @@ function CreateForm() {
     };
     launchImageLibrary(options, response => {
       if (response.didCancel) {
-        console.log('User cancelled image picker');
+        ErrorToast('User cancelled image picker');
       } else if (response.errorCode) {
-        console.log('ImagePicker Error: ', response.errorMessage);
+        ErrorToast('Something went wrong: selecting image');
       } else if (response.assets && Array.isArray(response.assets)) {
         const threeImages = response.assets.slice(0, 3);
         setImages(threeImages);
@@ -515,7 +402,9 @@ const CreateGigs = () => {
           flexGrow: 1,
           paddingBottom: responsiveHeight(5),
         }}
-        ListFooterComponent={<View style={{height: 100, backgroundColor:"white"}}/>}
+        ListFooterComponent={
+          <View style={{height: 100, backgroundColor: 'white'}} />
+        }
       />
     </BottomSheetModalProvider>
     // </KeyboardAwareScrollView>

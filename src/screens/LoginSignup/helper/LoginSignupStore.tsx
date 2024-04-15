@@ -37,7 +37,6 @@ export const LoginSignupStore = create(set => ({
     try {
       const response = await axios_no_auth.post('/user/resend-otp', data);
       if (response.data.status === 'pending') {
-        console.log(response.data);
         return response.data;
       }
       return [];
@@ -53,6 +52,21 @@ export const LoginSignupStore = create(set => ({
     try {
       const response = await axios_no_auth.post('/user/login', data);
       if (response.data.status === 'success') {
+        return response.data;
+      }
+      return [];
+    } catch (error: any) {
+      if (error.response) {
+        throw new Error(error.response.data.message);
+      } else {
+        throw new Error(error.message);
+      }
+    }
+  },
+  forgotPassword: async (data: any) => {
+    try {
+      const response = await axios_no_auth.put('/user/forgetPassword', data);
+      if (response.status === 200) {
         return response.data;
       }
       return [];

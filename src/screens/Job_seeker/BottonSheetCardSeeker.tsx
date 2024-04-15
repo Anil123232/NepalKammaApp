@@ -4,9 +4,11 @@ import {
   TouchableOpacity,
   Image,
   useWindowDimensions,
+  TextInput,
+  Button,
 } from 'react-native';
 import {FlatList} from 'react-native-gesture-handler';
-import React, {useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {
   responsiveFontSize,
   responsiveHeight,
@@ -23,13 +25,27 @@ import {MessageStore} from './helper/MessageStore';
 import {userStateProps} from './Home';
 import {useGlobalStore} from '../../global/store';
 import {useSocket} from '../../contexts/SocketContext';
+import Rating from '../GlobalComponents/Rating';
+import {ErrorToast} from '../../components/ErrorToast';
+import {ReviewStore} from './helper/ReviewStore';
+import {NotificationStore} from './helper/NotificationStore';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import {FlashList} from '@shopify/flash-list';
+import FastImage from 'react-native-fast-image';
+import MapModal from '../GlobalComponents/MapModal';
+import {UserStore} from './helper/UserStore';
+import {SuccessToast} from '../../components/SuccessToast';
+import {formatDistanceToNow} from 'date-fns';
 
 const BottonSheetCardSeeker = ({
   bottomSheetModalRef,
   data,
   navigation,
+  getJobDetails,
 }: any) => {
   const user: userStateProps = useGlobalStore((state: any) => state.user);
+
+  const {checkAuth} = useGlobalStore();
   // Convert the single data into an array
   const dataArray = data ? [data] : [];
 
@@ -39,45 +55,70 @@ const BottonSheetCardSeeker = ({
   //is applying state
   const [isApplying, setIsApplying] = useState<boolean>(false);
 
+  //is rating and review
+  const [isRating, setIsRating] = useState<boolean>(false);
+
+  //get review
+  const [reviewData, setReviewData] = useState<any>([]);
+
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  const [averageRating, setAverageRating] = useState<number>(0);
+
+  const [isLocationModalVisible, setLocationModalVisible] =
+    useState<boolean>(false);
+
+  const [isFetchAverageRating, setIsFetchAverageRating] =
+    React.useState<boolean>(false);
+  const [isFetchReview, setIsFetchReview] = React.useState<boolean>(false);
+  const [rating, setRating] = useState<number>(0);
+  const [review, setReview] = useState<string>('');
+  const [isPostSaved, setIsPostSaved] = useState<boolean>(false);
+
   const {width} = useWindowDimensions();
 
-  const generateHtmlPreview = () => {
+  const generateHtmlPreview = useCallback(() => {
     let html = `<p style="color: black;">${data?.job_description}</p>`;
     html = html.replace(/\n/g, '<br/>');
     return html;
-  };
+  }, [data]);
+
+  useEffect(() => {
+    if (user && user?.savedPostJob.includes(data?._id)) {
+      setIsPostSaved(true);
+    }
+  }, [user, data?._id]);
 
   // send message handler function
-  const sendMessageHandler = async (conversationId: string) => {
-    const newValues = {
-      conversationId: conversationId,
-      msg: `Hello, I am interested in your job [${data?.title}]. Can we discuss more about it?`,
-      recipientId: data?.postedBy._id,
-    };
-    const response = await (MessageStore.getState() as any).createMessage(
-      newValues,
-    );
-    setIsApplying(false);
-    if (response) {
-      // getAllConversation();
-      // getAllMessages(conversationId);
-      console.log(response);
-      navigation.navigate('Actual_Message', {
-        conversation_id: conversationId,
-      });
-    }
+  const sendMessageHandler = useCallback(
+    async (conversationId: string) => {
+      const newValues = {
+        conversationId,
+        msg: `Hello, I am interested in your job [${data?.title}]. Can we discuss more about it?. My username is ${user?.username}.`,
+        recipientId: data?.postedBy._id,
+      };
+      const response = await (MessageStore.getState() as any).createMessage(
+        newValues,
+      );
+      setIsApplying(false);
+      if (response) {
+        navigation.navigate('Actual_Message', {
+          conversation_id: conversationId,
+        });
+      }
 
-    //for socket io
-    const messageData = {
-      sender: user?._id,
-      receiver: data?.postedBy._id,
-      message: newValues.msg,
-      conversationId: newValues.conversationId,
-    };
-    socket.emit('textMessage', messageData);
-  };
+      const messageData = {
+        sender: user?._id,
+        receiver: data?.postedBy._id,
+        message: newValues.msg,
+        conversationId: newValues.conversationId,
+      };
+      socket.emit('textMessage', messageData);
+    },
+    [data, user, navigation, socket],
+  );
 
-  const createConversation = async () => {
+  const createConversation = useCallback(async () => {
     const newValues = {
       senderId: user._id,
       receiverId: data?.postedBy?._id,
@@ -88,13 +129,126 @@ const BottonSheetCardSeeker = ({
     if (response) {
       sendMessageHandler(response?.conversation._id.toString());
     }
-  };
+  }, [data, user, sendMessageHandler]);
 
   // apply job handler function
-  const applyJobHandler = () => {
+  const applyJobHandler = useCallback(() => {
+    if (user?.isDocumentVerified !== 'verified') {
+      ErrorToast('Please verify your document first');
+      return;
+    }
     setIsApplying(true);
     createConversation();
-  };
+  }, [createConversation]);
+
+  useEffect(() => {
+    const ids = data?.postedBy?.can_review?.map((item: any) => item.user);
+    if (ids.includes(user?._id)) {
+      setIsRating(true);
+    }
+  }, [data, user]);
+
+  const fetchReview = useCallback(async (id: string) => {
+    setIsFetchReview(true);
+    try {
+      const response = await (ReviewStore.getState() as any).getReview(id);
+      setReviewData(response);
+    } catch (error: any) {
+      ErrorToast(error.toString().replace('[Error: ', '').replace(']', ''));
+    }
+    setIsFetchReview(false);
+  }, []);
+
+  const fetchAverageRating = useCallback(async (id: string) => {
+    setIsFetchAverageRating(true);
+    try {
+      const response = await (ReviewStore.getState() as any).getAverageRating(
+        id,
+      );
+      setAverageRating(response);
+    } catch (error: any) {
+      ErrorToast(error.toString().replace('[Error: ', '').replace(']', ''));
+    }
+    setIsFetchAverageRating(false);
+  }, []);
+
+  useEffect(() => {
+    fetchReview(data?.postedBy?._id);
+    fetchAverageRating(data?.postedBy?._id);
+  }, [fetchReview, fetchAverageRating, data]);
+
+  const handleCreateNotification = useCallback(async () => {
+    try {
+      await (NotificationStore.getState() as any).createReview(
+        user?._id,
+        data?.postedBy?._id,
+        data?._id,
+        null,
+        review,
+        'review',
+      );
+    } catch (error: any) {
+      ErrorToast(error.toString().replace('[Error: ', '').replace(']', ''));
+    }
+  }, [data, review, user]);
+
+  const handleReviewSubmit = useCallback(async () => {
+    setIsSubmitting(true);
+    try {
+      await (ReviewStore.getState() as any).createReview(
+        user?._id,
+        data?.postedBy?._id,
+        review,
+        rating,
+      );
+      handleCreateNotification();
+      fetchReview(data?.postedBy?._id);
+      setReview('');
+      setRating(0);
+    } catch (error: any) {
+      ErrorToast(error.toString().replace('[Error: ', '').replace(']', ''));
+    }
+    setIsSubmitting(false);
+
+    const notificationData = {
+      sender: user?._id,
+      receiver: data?.postedBy._id,
+      type: 'review',
+    };
+    socket.emit('notification', notificationData);
+  }, [
+    data,
+    review,
+    rating,
+    handleCreateNotification,
+    fetchReview,
+    user,
+    socket,
+  ]);
+
+  const saveJobHandler = useCallback(async () => {
+    try {
+      const res = await (UserStore.getState() as any).saveJob(data?._id);
+      if (res) {
+        checkAuth();
+        SuccessToast(res?.message);
+      }
+    } catch (error: any) {
+      ErrorToast(error.toString().replace('[Error: ', '').replace(']', ''));
+    }
+  }, []);
+
+  const unsaveJobHandler = useCallback(async () => {
+    try {
+      const res = await (UserStore.getState() as any).unsaveJob(data?._id);
+      checkAuth();
+      getJobDetails();
+      bottomSheetModalRef.current?.close();
+      SuccessToast(res?.message);
+    } catch (error: any) {
+      ErrorToast(error.toString().replace('[Error: ', '').replace(']', ''));
+    }
+  }, []);
 
   const renderItem = ({item}: any) => (
     <View>
@@ -114,32 +268,75 @@ const BottonSheetCardSeeker = ({
         {/* uploader images profiel */}
         <View className="flex flex-row gap-x-2">
           {/* profile pic  */}
-          <TouchableOpacity onPress={()=> navigation.navigate("Other_Profile", {
-            id: data?.postedBy?._id
-          })}>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate('Other_Profile', {
+                id: data?.postedBy?._id,
+              })
+            }>
             <View>
               {data?.postedBy?.profilePic && (
-                <Image
-                  source={{uri: data?.postedBy?.profilePic.url}}
-                  style={{height: 40, width: 40, borderRadius: 40}}
-                />
+                <View className="relative">
+                  <FastImage
+                    source={{uri: data?.postedBy?.profilePic.url}}
+                    style={{height: 40, width: 40, borderRadius: 40}}
+                    className="relative"
+                  />
+                  <View
+                    className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border border-white ${
+                      data?.postedBy?.onlineStatus
+                        ? 'bg-green-500'
+                        : 'bg-red-500'
+                    }`}
+                  />
+                </View>
               )}
             </View>
           </TouchableOpacity>
           {/* name  */}
           <View className="flex flex-col gap-y-1">
-            <Text
-              className="text-black"
-              style={{fontFamily: 'Montserrat-Bold'}}>
-              {data?.postedBy?.username}
-            </Text>
+            <View className="flex flex-row items-center justify-between">
+              <Text
+                className="text-black w-[70%]"
+                style={{fontFamily: 'Montserrat-Bold'}}>
+                {' '}
+                {data?.postedBy?.username}
+              </Text>
+              {isPostSaved ? (
+                <TouchableOpacity onPress={unsaveJobHandler}>
+                  <MaterialCommunityIcons
+                    className="w-[30%] mt-2"
+                    name="content-save-all"
+                    size={20}
+                    color="#79AC78"
+                  />
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity onPress={saveJobHandler}>
+                  <MaterialCommunityIcons
+                    className="w-[30%] mt-2"
+                    name="content-save-all-outline"
+                    size={20}
+                    color="#79AC78"
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
             <View className="flex flex-row gap-x-1">
-              <FontAwesome name="star" size={15} color="gray" />
+              <FontAwesome
+                name="star"
+                size={15}
+                color={`${averageRating > 0 ? '#E2EA3B' : 'gray'}`}
+              />
               <Text
                 className="text-black"
                 style={{fontFamily: 'Montserrat-Bold'}}>
                 {' '}
-                5.0
+                {isFetchAverageRating ? (
+                  <Text className="text-color2">Loading...</Text>
+                ) : (
+                  averageRating?.toFixed(1) || 0
+                )}
               </Text>
             </View>
           </View>
@@ -187,7 +384,7 @@ const BottonSheetCardSeeker = ({
               renderItem={({item}) => {
                 return (
                   <View
-                    style={{marginBottom: responsiveHeight(0.2)}}
+                    style={{marginBottom: responsiveHeight(1)}}
                     className="border-color2 border-solid border-[1px] mr-2 py-1 px-2 rounded-md">
                     <Text
                       className="text-black"
@@ -252,8 +449,8 @@ const BottonSheetCardSeeker = ({
               renderItem={({item}) => {
                 return (
                   <View
-                    style={{marginBottom: responsiveHeight(0.2)}}
-                    className=" border-color2 border-solid border-[1px] mr-2 py-1 px-2 rounded-md">
+                    style={{marginBottom: responsiveHeight(1)}}
+                    className="border-color2 border-solid border-[1px] mr-2 py-1 px-2 rounded-md">
                     <Text
                       className="text-black"
                       style={{
@@ -290,14 +487,14 @@ const BottonSheetCardSeeker = ({
                 {isApplying ? 'Applying...' : 'Apply Now'}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => setLocationModalVisible(true)}>
               <Text
                 className="text-white py-2 px-5 bg-color2 rounded-md"
                 style={{
                   fontFamily: 'Montserrat-SemiBold',
                   fontSize: responsiveFontSize(1.75),
                 }}>
-                Get Location
+                View on Map
               </Text>
             </TouchableOpacity>
           </View>
@@ -310,7 +507,7 @@ const BottonSheetCardSeeker = ({
               fontFamily: 'Montserrat-SemiBold',
               fontSize: responsiveFontSize(1.5),
             }}>
-            Time Remaining for this Job
+            Job will expire in
           </Text>
           <Text
             className="text-red-500 mt-2 leading-4"
@@ -318,7 +515,7 @@ const BottonSheetCardSeeker = ({
               fontFamily: 'Montserrat-SemiBold',
               fontSize: responsiveFontSize(2),
             }}>
-            1d 2h 3m
+            {formatDistanceToNow(new Date(data?.experiesIn))}
           </Text>
         </View>
 
@@ -340,26 +537,133 @@ const BottonSheetCardSeeker = ({
               borderBottomWidth: 1,
             }}
           />
+          {isRating && (
+            <React.Fragment>
+              {/* rating input start  */}
+              <View
+                className="flex flex-row gap-x-3"
+                style={{marginBottom: responsiveHeight(3)}}>
+                <View className="w-[13%]">
+                  <Image
+                    source={{uri: user?.profilePic.url}}
+                    style={{height: 40, width: 40, borderRadius: 40}}
+                  />
+                </View>
+                <View className="w-[80%] flex flex-col gap-y-1">
+                  <Text
+                    className="text-black"
+                    style={{
+                      fontFamily: 'Montserrat-Bold',
+                      fontSize: responsiveFontSize(1.75),
+                    }}>
+                    {user?.username}
+                  </Text>
+                  <Text
+                    className="text-black"
+                    style={{
+                      fontFamily: 'Montserrat-Regular',
+                      fontSize: responsiveFontSize(1.75),
+                    }}>
+                    {user?.location}
+                  </Text>
+                  <Rating initialRating={rating} onRatingChange={setRating} />
+                  <TextInput
+                    multiline
+                    placeholder="Write your review..."
+                    value={review}
+                    onChangeText={setReview}
+                    style={{
+                      fontFamily: 'Montserrat-Regular',
+                      fontSize: responsiveFontSize(1.75),
+                    }}
+                    placeholderTextColor={'gray'}
+                    className="text-black border-solid border-[1px] border-color2 rounded-md p-2 w-full mt-2"
+                  />
+                  <TouchableOpacity
+                    onPress={handleReviewSubmit}
+                    className="w-[100%] flex items-center justify-center py-2 px-5 bg-color2 rounded-md mt-2">
+                    <Text
+                      className="text-white"
+                      style={{
+                        fontFamily: 'Montserrat-SemiBold',
+                        fontSize: responsiveFontSize(1.75),
+                      }}>
+                      {isSubmitting ? 'Submitting...' : 'Submit'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              {/* rating input end  */}
+              {/* make a line */}
+              <View
+                className="mb-3"
+                style={{
+                  borderBottomColor: 'gray',
+                  borderBottomWidth: 1,
+                }}
+              />
+            </React.Fragment>
+          )}
+
           <View className="flex flex-col gap-y-4">
-            {/* for one card start  */}
-            <View>
-              <Review />
-            </View>
-            {/* for one card end  */}
-            {/* make a line */}
-            <View
-              className="mb-3"
-              style={{
-                borderBottomColor: 'gray',
-                borderBottomWidth: 1,
-              }}
-            />
-            {/* for one card start  */}
-            <Review />
-            {/* for one card end  */}
+            {isFetchReview ? (
+              <Text
+                className="text-color2"
+                style={{
+                  fontFamily: 'Montserrat-Regular',
+                  fontSize: responsiveFontSize(1.75),
+                }}>
+                Loading...
+              </Text>
+            ) : (
+              <Text
+                className="text-black"
+                style={{
+                  fontFamily: 'Montserrat-Regular',
+                  fontSize: responsiveFontSize(1.75),
+                }}>
+                Total {reviewData?.length} Reviews
+              </Text>
+            )}
+
+            {!isFetchReview && reviewData.length > 0 && (
+              <View
+                style={{
+                  height: responsiveHeight(70),
+                  width: responsiveWidth(90),
+                }}>
+                <FlashList
+                  estimatedItemSize={100}
+                  keyExtractor={(item: any) => item._id?.toString() || ''}
+                  data={reviewData}
+                  renderItem={({item}) => <Review data={item} />}
+                  ListEmptyComponent={() => (
+                    <View style={{paddingBottom: responsiveHeight(25)}}>
+                      <Text
+                        className="text-red-500"
+                        style={{
+                          fontFamily: 'Montserrat-Bold',
+                          fontSize: responsiveFontSize(1.75),
+                        }}>
+                        No review found
+                      </Text>
+                    </View>
+                  )}
+                  contentContainerStyle={{
+                    paddingBottom: responsiveHeight(50),
+                    paddingTop: responsiveHeight(1),
+                  }}
+                  showsVerticalScrollIndicator={false}></FlashList>
+              </View>
+            )}
           </View>
         </View>
       </View>
+      <MapModal
+        isModalVisible={isLocationModalVisible}
+        setIsModalVisible={setLocationModalVisible}
+        address={data?.address}
+      />
     </View>
   );
 
@@ -403,4 +707,4 @@ const BottonSheetCardSeeker = ({
   );
 };
 
-export default BottonSheetCardSeeker;
+export default React.memo(BottonSheetCardSeeker);

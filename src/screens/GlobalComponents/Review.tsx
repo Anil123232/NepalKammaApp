@@ -1,19 +1,33 @@
 import {View, Text, Image} from 'react-native';
-import React from 'react';
+import React, {memo, useCallback} from 'react';
 import {responsiveFontSize} from 'react-native-responsive-dimensions';
 import IonIcons from 'react-native-vector-icons/Ionicons';
+import {formatDistanceToNow} from 'date-fns';
 
-const Review = () => {
+const Review = ({data}: any) => {
+  const renderStars = useCallback(() => {
+    const stars = [];
+
+    for (let i = 1; i <= 5; i++) {
+      const starColor = i <= data?.rating ? '#E2EA3B' : 'gray';
+      stars.push(<IonIcons key={i} name="star" size={15} color={starColor} />);
+    }
+
+    return stars;
+  }, [data?.rating]);
+
   return (
     <>
       {/* for one card start  */}
       <View className="flex flex-row gap-x-3">
         {/* profile  */}
         <View>
-          <Image
-            source={{uri: 'https://randomuser.me/api/portraits/men/71.jpg'}}
-            style={{height: 40, width: 40, borderRadius: 40}}
-          />
+          {data?.reviewedBy?.profilePic?.url && (
+            <Image
+              source={{uri: data?.reviewedBy?.profilePic.url}}
+              style={{height: 40, width: 40, borderRadius: 40}}
+            />
+          )}
         </View>
         {/* detials */}
         <View className="flex flex-col gap-y-1 pr-10">
@@ -23,7 +37,7 @@ const Review = () => {
               fontFamily: 'Montserrat-Bold',
               fontSize: responsiveFontSize(1.75),
             }}>
-            cambile123
+            {data?.reviewedBy?.username}
           </Text>
           <Text
             className="text-black"
@@ -31,22 +45,20 @@ const Review = () => {
               fontFamily: 'Montserrat-Regular',
               fontSize: responsiveFontSize(1.75),
             }}>
-            Kathmandu
+            {data?.reviewedBy?.location}
           </Text>
           <View className="flex flex-row gap-x-1">
-            <IonIcons name="star" size={15} color="#E2EA3B" />
-            <IonIcons name="star" size={15} color="#E2EA3B" />
-            <IonIcons name="star" size={15} color="#E2EA3B" />
-            <IonIcons name="star" size={15} color="#E2EA3B" />
-            <IonIcons name="star" size={15} color="gray" />
-            <Text className="text-black pl-2 font-bold">(4)</Text>
+            <View style={{flexDirection: 'row'}}>{renderStars()}</View>
+            <Text className="text-black pl-2 font-bold">({data?.rating})</Text>
             <Text
               className="text-color2 pl-4"
               style={{
                 fontFamily: 'Montserrat-Regular',
                 fontSize: responsiveFontSize(1.75),
               }}>
-              2 weeks ago
+              {formatDistanceToNow(new Date(data?.createdAt), {
+                addSuffix: true,
+              })}
             </Text>
           </View>
           <Text
@@ -55,14 +67,21 @@ const Review = () => {
               fontFamily: 'Montserrat-Regular',
               fontSize: responsiveFontSize(1.65),
             }}>
-            This is an amazing and talented designer. He has been my designer
-            since I meet him. I highly recommend him. Thank you seller.
+            {data?.review}
           </Text>
         </View>
       </View>
       {/* for one card end  */}
+      {/* make a line */}
+      <View
+        className="my-3"
+        style={{
+          borderBottomColor: 'gray',
+          borderBottomWidth: 1,
+        }}
+      />
     </>
   );
 };
 
-export default Review;
+export default React.memo(Review);

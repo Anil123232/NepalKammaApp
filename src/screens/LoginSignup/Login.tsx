@@ -18,6 +18,7 @@ import {useUserContext} from '../../contexts/UserContext';
 import {useGlobalStore} from '../../global/store';
 import {RootStackParamsList} from '../../navigation/AppStack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface LoginScreenProps {
   navigation: StackNavigationProp<RootStackParamsList>;
@@ -26,6 +27,7 @@ interface LoginScreenProps {
 interface LoginDetails {
   email: string;
   password: string;
+  fcm_token?: string;
 }
 
 interface LoginSignupStoreState {
@@ -66,18 +68,20 @@ const Login = ({navigation}: LoginScreenProps) => {
   const loginHandlerFunction = async (values: LoginDetails) => {
     setIsLoggingIn(true);
     try {
-      const response = await (
-        LoginSignupStore.getState() as LoginSignupStoreState
-      ).loginUser(values);
+      const finalValues = {
+        email: values.email,
+        password: values.password,
+        fcm_token: await AsyncStorage.getItem('fcm_token'),
+      };
+      const response = await (LoginSignupStore.getState() as any).loginUser(
+        finalValues,
+      );
       setCurrentUser(response.token);
       setUser(response.user);
       SuccessToast(response.message);
       response.user.role === 'job_seeker' && navigation.replace('Job_Seeker');
       response.user.role === 'job_provider' &&
         navigation.replace('Job_Provider');
-
-        console.log(response.token)
-
       // setting the token in async storage
       setToken('currentUser', response.token);
     } catch (error: any) {
@@ -198,17 +202,20 @@ const Login = ({navigation}: LoginScreenProps) => {
                   )}
                 </View>
               </View>
-              <View className="flex flex-row items-center justify-between">
-                <Text className="text-black text-xs"></Text>
-                <Text
-                  className="text-black"
-                  style={{
-                    fontSize: responsiveFontSize(1.9),
-                    fontFamily: 'Montserrat-SemiBold',
-                  }}>
-                  Forget Password?
-                </Text>
-              </View>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('forget_password')}>
+                <View className="flex flex-row items-center justify-between">
+                  <Text className="text-black text-xs"></Text>
+                  <Text
+                    className="text-black"
+                    style={{
+                      fontSize: responsiveFontSize(1.9),
+                      fontFamily: 'Montserrat-SemiBold',
+                    }}>
+                    Forget Password?
+                  </Text>
+                </View>
+              </TouchableOpacity>
               <View>
                 <View className="w-[100%] bg-color2 flex items-center justify-center rounded-md">
                   <TouchableOpacity onPress={() => handleSubmit()}>

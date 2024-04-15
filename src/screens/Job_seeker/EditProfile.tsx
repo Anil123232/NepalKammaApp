@@ -1,5 +1,5 @@
 import {View, Text, TouchableOpacity, TextInput} from 'react-native';
-import React from 'react';
+import React, {useCallback, useMemo} from 'react';
 import {
   responsiveFontSize,
   responsiveHeight,
@@ -37,45 +37,49 @@ const RenderItem = () => {
   //geometry
   const [geometry, setGeometry] = React.useState<any>({});
 
-  const initialValues = {
-    username: user.username,
-    title: user.title,
-    bio: user.bio,
-    about_me: user.about_me,
-  };
+  const initialValues = useMemo(
+    () => ({
+      username: user.username,
+      title: user.title,
+      bio: user.bio,
+      about_me: user.about_me,
+    }),
+    [user],
+  );
 
-  const handleEditProfile = async (values: editProfileProps) => {
-    console.log(values);
-    try {
-      const skillsRequired = selectedItem.map(
-        (index: any) => Skills_data[index - 1],
-      );
+  const handleEditProfile = useCallback(
+    async (values: editProfileProps) => {
+      try {
+        const skillsRequired = selectedItem.map(
+          (index: any) => Skills_data[index - 1],
+        );
 
-      const newValues = {
-        ...values,
-        skills: skillsRequired?.map((skill: any) => skill.name),
-        location: locationName,
-        latitude: geometry.coordinates[1],
-        longitude: geometry.coordinates[0],
-      };
+        const newValues = {
+          ...values,
+          skills: skillsRequired?.map((skill: any) => skill.name),
+          location: locationName,
+          latitude: geometry.coordinates[1],
+          longitude: geometry.coordinates[0],
+        };
 
-      const response = await (
-        UserStore.getState() as editProfileApiProps
-      ).editProfile(user._id, newValues);
+        const response = await (
+          UserStore.getState() as editProfileApiProps
+        ).editProfile(user._id, newValues);
 
-      if (response) {
-        console.log('rrrr', response);
-        checkAuth();
-        SuccessToast('Profile Updated Successfully');
+        if (response) {
+          checkAuth();
+          SuccessToast('Profile Updated Successfully');
+        }
+      } catch (error: any) {
+        const errorMessage = error
+          .toString()
+          .replace('[Error: ', '')
+          .replace(']', '');
+        ErrorToast(errorMessage);
       }
-    } catch (error: any) {
-      const errorMessage = error
-        .toString()
-        .replace('[Error: ', '')
-        .replace(']', '');
-      ErrorToast(errorMessage);
-    }
-  };
+    },
+    [checkAuth, geometry.coordinates, locationName, selectedItem, user._id],
+  );
 
   return (
     <View className="flex flex-col items-center ">
@@ -318,4 +322,4 @@ const EditProfile = ({bottomSheetModalRef}: any) => {
   );
 };
 
-export default EditProfile;
+export default React.memo(EditProfile);

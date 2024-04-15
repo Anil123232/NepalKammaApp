@@ -1,4 +1,4 @@
-import {View, Text, Button} from 'react-native';
+import {View, Text, Button, StyleSheet, ActivityIndicator} from 'react-native';
 import {TouchableWithoutFeedback} from 'react-native-gesture-handler';
 import React, {useCallback, useEffect, useMemo, useRef} from 'react';
 import {
@@ -24,6 +24,7 @@ import {Picker} from '@react-native-picker/picker';
 import {categoryFilter} from '../GlobalComponents/SkillsData';
 import {ErrorToast} from '../../components/ErrorToast';
 import useLocationStore, {LocationState} from '../../global/useLocationStore';
+import {FlashList} from '@shopify/flash-list';
 
 interface peopleProps {
   navigation: BottomTabNavigationProp<BottomStackParamsList>;
@@ -42,8 +43,6 @@ const Explore = ({navigation, route}: peopleProps) => {
   const [totalPages, setTotalPages] = React.useState<number>(1);
   const [totalJobs, setTotalJobs] = React.useState<number>(0);
   const [isFetchingMore, setIsFetchingMore] = React.useState<boolean>(false);
-  const [isFetchingPrevious, setIsFetchingPrevious] =
-    React.useState<boolean>(false);
 
   //distance
   const [selectedDistance, setSelectedDistance] = React.useState(0);
@@ -72,111 +71,175 @@ const Explore = ({navigation, route}: peopleProps) => {
     bottomSheetModalRef.current?.present();
   }, []);
   const handleSheetChanges = useCallback((index: number) => {
-    console.log('handleSheetChanges', index);
   }, []);
 
-  const loadPreviousJobs = () => {
-    if (!isFetchingMore && currentPage > 1) {
-      const previousPage = currentPage - 1;
-      setIsFetchingPrevious(true);
-      searchJob(
+  const fetchJob = React.useCallback(
+    async (
+      searchText: string,
+      selectedCategory: string,
+      selectedDistance: any,
+      lowToHigh: boolean,
+      highToLow: boolean,
+      sortByRating: boolean,
+      page: number,
+      limit: number,
+      lat: number,
+      long: number,
+    ) => {
+      try {
+        const response = await (FetchJobStore.getState() as any).searchJob(
+          searchText,
+          selectedCategory,
+          selectedDistance,
+          lowToHigh,
+          highToLow,
+          sortByRating,
+          page,
+          limit,
+          lat,
+          long,
+        );
+
+        // Update total jobs and pages
+        setTotalJobs(response?.totalJobs || 0);
+        if (response.totalPages !== undefined) {
+          setTotalPages(response.totalPages);
+        }
+        setCurrentPage(response.currentPage);
+
+        // Merge new jobs with existing jobs
+        setJobDetails(prevJobDetails => ({
+          ...prevJobDetails,
+          job: [...prevJobDetails.job, ...response.job],
+        }));
+      } catch (error: any) {
+        const errorMessage = error
+          .toString()
+          .replace('[Error: ', '')
+          .replace(']', '');
+        ErrorToast(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [setJobDetails, setTotalJobs, setTotalPages, setCurrentPage, ErrorToast],
+  );
+
+  const handleEndReached = React.useCallback(() => {
+    if (!isFetchingMore && currentPage < totalPages) {
+      const nextPage = currentPage + 1;
+      setIsFetchingMore(true);
+      fetchJob(
         searchText,
         selectedCategory,
         selectedDistance,
         lowToHigh,
         highToLow,
         sortByRating,
-        previousPage,
+        nextPage,
         5,
         location.latitude,
         location.longitude,
       )
-        .then(() => setIsFetchingPrevious(false))
+        .then(() => setIsFetchingMore(false))
         .catch(error => {
-          console.error('Error fetching previous data:', error);
-          setIsFetchingPrevious(false);
+          console.error('Error fetching more data:', error);
+          setIsFetchingMore(false);
         });
     }
-  };
-  const handleScroll = (event: any) => {
-    const {contentOffset} = event.nativeEvent;
-    if (contentOffset.y === 0) {
-      loadPreviousJobs();
-    }
-  };
+  }, [
+    isFetchingMore,
+    currentPage,
+    totalPages,
+    searchText,
+    selectedCategory,
+    selectedDistance,
+    lowToHigh,
+    highToLow,
+    sortByRating,
+    location.latitude,
+    location.longitude,
+    fetchJob,
+    setIsFetchingMore,
+  ]);
 
-  //get all job details
-  // const getJobDetails = async (page: number, limit: number) => {
-  //   const response = await (FetchJobStore.getState() as getJobProps).getJob(
-  //     page,
-  //     limit,
-  //   );
-  //   setJobDetails(prevJob => ({
-  //     ...prevJob,
-  //     job: [...prevJob.job, ...response.job],
-  //   }));
-
-  //   if (response.totalPages !== undefined) {
-  //     setTotalPages(response.totalPages);
-  //   }
-  //   if (response.currentPage !== undefined) {
-  //     setCurrentPage(response.currentPage);
-  //   }
-  //   setIsLoading(false);
-  // };
-
-  const searchJob = async (
-    searchText: string,
-    selectedCategory: string,
-    selectedDistance: any,
-    lowToHigh: boolean,
-    highTolow: boolean,
-    sortByRating: boolean,
-    page: number,
-    limit: number,
-    lat: number,
-    long: number,
-  ) => {
-    try {
-      const response = await (FetchJobStore.getState() as any).searchJob(
-        searchText,
-        selectedCategory,
-        selectedDistance,
-        lowToHigh,
-        highTolow,
-        sortByRating,
-        page,
-        limit,
-        lat,
-        long,
+  const handleReachEnd = React.useCallback(
+    ({layoutMeasurement, contentOffset, contentSize}: any) => {
+      const paddingToBottom = 25;
+      return (
+        layoutMeasurement.height + contentOffset.y >=
+        contentSize.height - paddingToBottom
       );
-      setJobDetails({
-        job: [],
-        nearBy: [],
-      });
-      setTotalJobs(response?.totalJobs);
-      setJobDetails(prevJob => ({
-        ...prevJob,
-        job: [...response.job],
-      }));
+    },
+    [],
+  );
 
-      if (response.totalPages !== undefined) {
-        setTotalPages(response.totalPages);
+  const handleScroll = React.useCallback(
+    (event: any) => {
+      const {layoutMeasurement, contentOffset, contentSize} = event.nativeEvent;
+      if (handleReachEnd({layoutMeasurement, contentOffset, contentSize})) {
+        if (currentPage < totalPages) {
+          handleEndReached();
+        }
       }
-      if (response.currentPage !== undefined) {
-        setCurrentPage(response.currentPage);
-      }
-    } catch (error: any) {
-      const errorMessage = error
-        .toString()
-        .replace('[Error: ', '')
-        .replace(']', '');
-      ErrorToast(errorMessage);
-    }
-    setIsLoading(false);
-  };
+    },
+    [handleReachEnd, currentPage, totalPages, handleEndReached],
+  );
 
-  const handleOkFunction = () => {
+  const searchJob = React.useCallback(
+    async (
+      searchText: string,
+      selectedCategory: string,
+      selectedDistance: any,
+      lowToHigh: boolean,
+      highTolow: boolean,
+      sortByRating: boolean,
+      page: number,
+      limit: number,
+      lat: number,
+      long: number,
+    ) => {
+      try {
+        const response = await (FetchJobStore.getState() as any).searchJob(
+          searchText,
+          selectedCategory,
+          selectedDistance,
+          lowToHigh,
+          highTolow,
+          sortByRating,
+          page,
+          limit,
+          lat,
+          long,
+        );
+        setJobDetails({
+          job: [],
+          nearBy: [],
+        });
+        setTotalJobs(response?.totalJobs);
+        setJobDetails(prevJob => ({
+          ...prevJob,
+          job: [...response.job],
+        }));
+
+        if (response.totalPages !== undefined) {
+          setTotalPages(response.totalPages);
+        }
+        if (response.currentPage !== undefined) {
+          setCurrentPage(response.currentPage);
+        }
+      } catch (error: any) {
+        const errorMessage = error
+          .toString()
+          .replace('[Error: ', '')
+          .replace(']', '');
+        ErrorToast(errorMessage);
+      }
+      setIsLoading(false);
+    },
+    [setJobDetails, setTotalJobs, setTotalPages, setCurrentPage, ErrorToast],
+  );
+  const handleOkFunction = React.useCallback(() => {
     setModalVisible(false);
     setIsLoading(true);
     setTotalJobs(0);
@@ -193,17 +256,22 @@ const Explore = ({navigation, route}: peopleProps) => {
       location.latitude,
       location.longitude,
     );
-    console.log(
-      selectedDistance,
-      lowToHigh,
-      highToLow,
-      sortByRating,
-      selectedCategory,
-      searchText,
-    );
-  };
+  }, [
+    setModalVisible,
+    setIsLoading,
+    setTotalJobs,
+    searchText,
+    selectedCategory,
+    selectedDistance,
+    lowToHigh,
+    highToLow,
+    sortByRating,
+    location.latitude,
+    location.longitude,
+    searchJob,
+  ]);
 
-  const resetSearch = () => {
+  const resetSearch = React.useCallback(() => {
     setModalVisible(false);
     setIsLoading(true);
     setTotalJobs(0);
@@ -225,32 +293,20 @@ const Explore = ({navigation, route}: peopleProps) => {
       location.latitude,
       location.longitude,
     );
-  };
-
-  const handleEndReached = () => {
-    if (!isFetchingMore && currentPage < totalPages) {
-      const nextPage = currentPage + 1;
-      setIsFetchingMore(true);
-      searchJob(
-        searchText,
-        selectedCategory,
-        selectedDistance,
-        lowToHigh,
-        highToLow,
-        sortByRating,
-        nextPage,
-        5,
-        location.latitude,
-        location.longitude,
-      )
-        .then(() => setIsFetchingMore(false))
-        .catch(error => {
-          console.error('Error fetching more data:', error);
-          setIsFetchingMore(false);
-        });
-    }
-    console.log('hitted');
-  };
+  }, [
+    setModalVisible,
+    setIsLoading,
+    setTotalJobs,
+    setSelectedCategory,
+    setSearchText,
+    setSelectedDistance,
+    setLowToHigh,
+    setHighToLow,
+    setSortByRating,
+    location.latitude,
+    location.longitude,
+    searchJob,
+  ]);
 
   React.useEffect(() => {
     setIsLoading(true);
@@ -267,7 +323,7 @@ const Explore = ({navigation, route}: peopleProps) => {
       location.latitude,
       location.longitude,
     );
-  }, [selectedCategory]);
+  }, [selectedCategory, searchJob]);
 
   useEffect(() => {
     searchJob(
@@ -284,7 +340,6 @@ const Explore = ({navigation, route}: peopleProps) => {
     );
   }, []);
 
- 
   return (
     <BottomSheetModalProvider>
       <View
@@ -392,75 +447,79 @@ const Explore = ({navigation, route}: peopleProps) => {
         <View className="w-[90%]">
           {isLoading ? (
             <>
-              <FlatList
-                data={[1, 1, 1, 1, 1]}
-                renderItem={({item, index}) => <CardLoader />}
-              />
+              <View
+                style={{
+                  height: responsiveHeight(112),
+                  width: responsiveWidth(90),
+                }}>
+                <FlashList
+                  data={[1, 1, 1, 1, 1]}
+                  estimatedItemSize={100}
+                  renderItem={({item, index}) => <CardLoader />}
+                />
+              </View>
             </>
           ) : (
-            <FlatList
-              keyExtractor={(item, index) =>
-                item._id ? item._id.toString() : index.toString()
-              }
-              onScroll={handleScroll}
-              // initialNumToRender={10}
-              data={jobDetails?.job}
-              renderItem={({item}) => (
-                <TouchableWithoutFeedback
-                  onPress={() => {
-                    setSelectedData(item);
-                    handlePresentModalPress();
-                  }}>
-                  <Cards data={item} user={user} />
-                </TouchableWithoutFeedback>
-              )}
-              contentContainerStyle={{
-                paddingBottom: responsiveHeight(60),
-              }}
-              showsVerticalScrollIndicator={false}
-              onEndReached={handleEndReached}
-              onEndReachedThreshold={0.1}
-              ListEmptyComponent={() => (
-                // Render this component when there's no data
-                <View style={{paddingBottom: responsiveHeight(30)}}>
-                  <Text
-                    className="text-red-500"
-                    style={{
-                      fontFamily: 'Montserrat-Bold',
-                      fontSize: responsiveFontSize(1.75),
+            <View
+              style={{
+                height: responsiveHeight(112),
+                width: responsiveWidth(90),
+              }}>
+              <FlashList
+                keyExtractor={(item, index) =>
+                  item._id ? item._id.toString() : index.toString()
+                }
+                onScroll={handleScroll}
+                estimatedItemSize={100}
+                data={jobDetails?.job}
+                renderItem={({item}) => (
+                  <TouchableWithoutFeedback
+                    onPress={() => {
+                      setSelectedData(item);
+                      handlePresentModalPress();
                     }}>
-                    No jobs available
-                  </Text>
-                </View>
-              )}
-              ListHeaderComponent={() =>
-                isFetchingPrevious ? (
-                  <View style={{alignItems: 'center', paddingVertical: 10}}>
+                    <Cards data={item} user={user} />
+                  </TouchableWithoutFeedback>
+                )}
+                contentContainerStyle={{paddingBottom: responsiveHeight(70)}}
+                showsVerticalScrollIndicator={false}
+                // onEndReached={handleEndReached}
+                onEndReachedThreshold={0.5}
+                ListEmptyComponent={() => (
+                  // Render this component when there's no data
+                  <View style={{paddingBottom: responsiveHeight(30)}}>
                     <Text
-                      className="text-black"
+                      className="text-red-500"
                       style={{
-                        fontFamily: 'Montserrat-SemiBold',
-                        fontSize: responsiveHeight(2),
+                        fontFamily: 'Montserrat-Bold',
+                        fontSize: responsiveFontSize(1.75),
                       }}>
-                      Loading...
+                      No jobs available
                     </Text>
                   </View>
-                ) : null
-              }
-              ListFooterComponent={() =>
-                isFetchingMore ? (
-                  <View style={{alignItems: 'center', paddingVertical: 10}}>
-                    <Text
-                      className="text-black"
-                      style={{
-                        fontFamily: 'Montserrat-SemiBold',
-                        fontSize: responsiveHeight(2),
-                      }}>
-                      Loading...
-                    </Text>
-                  </View>
-                ) : null
-              }></FlatList>
+                )}
+                // ListHeaderComponent={() =>
+                //   isFetchingPrevious ? (
+                //     <View style={{alignItems: 'center', paddingVertical: 10}}>
+                //       <Text
+                //         className="text-black"
+                //         style={{
+                //           fontFamily: 'Montserrat-SemiBold',
+                //           fontSize: responsiveHeight(2),
+                //         }}>
+                //         Loading...
+                //       </Text>
+                //     </View>
+                //   ) : null
+                // }
+                ListFooterComponent={() =>
+                  isFetchingMore ? (
+                    <View style={[styles.container, styles.horizontal]}>
+                      <ActivityIndicator size="large" color="#00ff00" />
+                    </View>
+                  ) : null
+                }></FlashList>
+            </View>
           )}
 
           <BottomSheetModal
@@ -498,5 +557,17 @@ const Explore = ({navigation, route}: peopleProps) => {
     </BottomSheetModalProvider>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  horizontal: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    padding: 10,
+  },
+});
 
 export default Explore;

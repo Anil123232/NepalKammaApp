@@ -16,6 +16,8 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import {useGlobalStore} from '../../../global/store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useSocket} from '../../../contexts/SocketContext';
+import FastImage from 'react-native-fast-image';
 
 type userStateProps = {
   __v: number;
@@ -27,20 +29,37 @@ type userStateProps = {
   profilePic: {
     url: string;
   };
+  totalIncome: number;
 };
 
 const CustomDrawerSeeker = (props: DrawerContentComponentProps) => {
   const {navigation} = props;
+  const socket = useSocket();
   const user: userStateProps = useGlobalStore((state: any) => state.user);
 
   const handleLogoutFunction = async () => {
     await AsyncStorage.removeItem('currentUser');
     useGlobalStore.setState({user: null});
+
+    await socket?.emit('removeUser', socket.id);
+
     navigation.reset({
       index: 0,
       routes: [{name: 'Login'}],
     });
   };
+
+  React.useEffect(() => {
+    const messageListener = async (newNotification: any) => {
+      handleLogoutFunction();
+    };
+
+    socket?.on('accountDeactivation', messageListener);
+
+    return () => {
+      socket?.off('accountDeactivation', messageListener);
+    };
+  }, [socket]);
 
   return (
     <View style={{flex: 1}}>
@@ -51,7 +70,7 @@ const CustomDrawerSeeker = (props: DrawerContentComponentProps) => {
           source={require('../../../../assets/images/menu_job_provider.jpg')}
           style={{padding: 20}}>
           {user && user?.profilePic.url && (
-            <Image
+            <FastImage
               source={{uri: user?.profilePic.url}}
               style={{
                 height: 80,
@@ -77,7 +96,7 @@ const CustomDrawerSeeker = (props: DrawerContentComponentProps) => {
                 fontFamily: 'Montserrat-Regular',
                 marginRight: 5,
               }}>
-              Rs. 500
+              Rs. {(user?.totalIncome && user?.totalIncome.toFixed(2)) || 0}
             </Text>
             <FontAwesome5 name="coins" size={14} color="#fff" />
           </View>

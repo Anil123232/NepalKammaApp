@@ -1,5 +1,5 @@
 import {View, Text, TouchableOpacity, FlatList, Image} from 'react-native';
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   responsiveFontSize,
   responsiveHeight,
@@ -17,6 +17,7 @@ import {useGlobalStore} from '../../global/store';
 import {useSocket} from '../../contexts/SocketContext';
 import ConversationLoader from '../GlobalComponents/Loader/ConversationLoader';
 import {ErrorToast} from '../../components/ErrorToast';
+import {useMessageStore} from '../../global/MessageCount';
 
 interface MessageProps {
   navigation: BottomTabNavigationProp<BottomStackParamsList>;
@@ -36,7 +37,6 @@ const Message = ({navigation}: MessageProps) => {
     // Event listener for 'getU' event
     socket.on('getU', (data: any) => {
       setOnlineUsers(data);
-      console.log('Received data:', data);
     });
 
     // Clean up the event listener when component unmounts
@@ -45,7 +45,7 @@ const Message = ({navigation}: MessageProps) => {
     };
   }, [socket]);
 
-  const getConversations = async () => {
+  const getConversations = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await (
@@ -60,12 +60,35 @@ const Message = ({navigation}: MessageProps) => {
       ErrorToast(errorMessage);
     }
     setIsLoading(false);
-  };
+  },[]);
+
   React.useEffect(() => {
     if (isFocused) {
       getConversations();
     }
-  }, [isFocused]);
+  }, [isFocused, getConversations]);
+
+  const readAllMessages = async (conversation_id: string) => {
+    try {
+      await (MessageStore.getState() as any).readAllMessage(conversation_id);
+      useMessageStore.setState(state => ({
+        messageCount: 0,
+      }));
+    } catch (error: any) {
+      const errorMessage = error
+        .toString()
+        .replace('[Error: ', '')
+        .replace(']', '');
+      ErrorToast(errorMessage);
+    }
+  };
+
+  const clickedConversationHandler = (conversationId: string) => {
+    navigation.navigate('Actual_Message', {
+      conversation_id: conversationId,
+    });
+    readAllMessages(conversationId);
+  };
 
   if (isLoading) {
     return <ConversationLoader />;
@@ -193,11 +216,9 @@ const Message = ({navigation}: MessageProps) => {
                 paddingBottom:
                   item.length < 2 ? responsiveHeight(15) : responsiveHeight(1),
               }}
-              onPress={() =>
-                navigation.navigate('Actual_Message', {
-                  conversation_id: item._id.toString(),
-                })
-              }>
+              onPress={() => clickedConversationHandler(item._id.toString())}
+
+            >
               <Conversation data={item} />
             </TouchableOpacity>
           )}

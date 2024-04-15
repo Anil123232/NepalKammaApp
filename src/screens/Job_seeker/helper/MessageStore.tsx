@@ -50,7 +50,6 @@ export const MessageStore = create(set => ({
   getAllMessages: async (id: string) => {
     //id --> conversation id
     try {
-        console.log("hitted")
       const response = await axios_auth.get(`/message/messagesCombo/${id}`);
       if (response.status === 200) {
         return response.data;

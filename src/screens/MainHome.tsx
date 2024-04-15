@@ -17,13 +17,12 @@ interface MainHomeScreenProps {
   navigation: StackNavigationProp<RootStackParamsList>;
 }
 
-const MainHome = ({navigation}: MainHomeScreenProps) => {
+const MainHome = React.memo(({navigation}: MainHomeScreenProps) => {
   useEffect(() => {
     const checkAuthentication = async () => {
       const response = await (
         useGlobalStore.getState() as mainHomeStoreState
       ).checkAuth();
-
 
       // if response is true
       if (response) {
@@ -49,8 +48,7 @@ const MainHome = ({navigation}: MainHomeScreenProps) => {
     checkAuthentication();
   }, []);
 
-
   return <Loading />;
-};
+});
 
 export default MainHome;

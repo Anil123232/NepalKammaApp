@@ -7,8 +7,16 @@ import AppStack from './src/navigation/AppStack';
 import DrawerStack from './src/navigation/DrawerStack';
 import {SocketProvider} from './src/contexts/SocketContext';
 import AppProvider from './src/contexts/AppProvider';
+import {requestUserPermission} from './src/utils/notificationService';
+import {LogBox} from 'react-native';
 
 function App(): JSX.Element {
+  React.useEffect(() => {
+    requestUserPermission();
+
+    LogBox.ignoreLogs(['ReactImageView']);
+  }, []);
+
   return (
     <>
       {/* <SocketProvider> */}

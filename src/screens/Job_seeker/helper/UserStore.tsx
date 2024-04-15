@@ -19,7 +19,6 @@ export const UserStore = create(set => ({
   },
   updatePhoneNumber: async (phone: any) => {
     try {
-      console.log(phone);
       const response = await axios_auth.put(`/user/update-phone`, {
         phone: phone,
       });
@@ -50,5 +49,81 @@ export const UserStore = create(set => ({
       }
     }
   },
+  getSingleUserProvider: async (id: string) => {
+    try {
+      const response = await axios_auth.get(`/user/user/provider/${id}`);
+      if (response.status === 200) {
+        return response.data;
+      }
+      return [];
+    } catch (error: any) {
+      if (error.response) {
+        throw new Error(error.response.data.message);
+      } else {
+        throw new Error(error.message);
+      }
+    }
+  },
 
+  saveJob: async (id: string) => {
+    try {
+      const response = await axios_auth.put(`/user/save-job/${id}`);
+      if (response.status === 200) {
+        return response.data;
+      }
+      return [];
+    } catch (error: any) {
+      if (error.response) {
+        throw new Error(error.response.data.message);
+      } else {
+        throw new Error(error.message);
+      }
+    }
+  },
+  unsaveJob: async (id: string) => {
+    try {
+      const response = await axios_auth.put(`/user/unsave-job/${id}`);
+      if (response.status === 200) {
+        return response.data;
+      }
+      return [];
+    } catch (error: any) {
+      if (error.response) {
+        throw new Error(error.response.data.message);
+      } else {
+        throw new Error(error.message);
+      }
+    }
+  },
+
+  getSavejob: async () => {
+    try {
+      const response = await axios_auth.get(`/user/saved-jobs`);
+      if (response.status === 200) {
+        return response.data;
+      }
+      return [];
+    } catch (error: any) {
+      if (error.response) {
+        throw new Error(error.response.data.message);
+      } else {
+        throw new Error(error.message);
+      }
+    }
+  },
+  getTopJobProvider: async () => {
+    try {
+      const response = await axios_auth.get(`/user/top-rated-job-provider`);
+      if (response.status === 200) {
+        return response.data;
+      }
+      return [];
+    } catch (error: any) {
+      if (error.response) {
+        throw new Error(error.response.data.message);
+      } else {
+        throw new Error(error.message);
+      }
+    }
+  },
 }));

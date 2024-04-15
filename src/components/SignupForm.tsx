@@ -15,14 +15,17 @@ import {RootStackParamsList} from '../navigation/AppStack';
 import {Picker} from '@react-native-picker/picker';
 import {genderList} from '../screens/GlobalComponents/SkillsData';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface SignUpDetails {
   username: string;
   email: string;
   password: string;
   confirmPassword?: string;
+  security_answer?: string;
   role?: string | null;
   gender?: string | null;
+  fcm_token?: string | null;
 }
 
 interface SignupFormProps {
@@ -46,6 +49,7 @@ const validationSchema = Yup.object().shape({
   confirmPassword: Yup.string()
     .oneOf([Yup.ref('password'), ''], 'Passwords must match')
     .required('Confirm password is required'),
+  security_answer: Yup.string().required('Security answer is required'),
 });
 
 const SignupForm = ({role, navigation}: SignupFormProps) => {
@@ -73,7 +77,6 @@ const SignupForm = ({role, navigation}: SignupFormProps) => {
 
   // handle signup
   const handleSignup = async (values: SignUpDetails) => {
-    console.log("callded", gender)
     setIsSubmitting(true);
     try {
       if (role && gender) {
@@ -83,6 +86,8 @@ const SignupForm = ({role, navigation}: SignupFormProps) => {
           password: values.password,
           role: role,
           gender: gender,
+          security_answer: values.security_answer,
+          fcm_token: await AsyncStorage.getItem('fcm_token'),
         };
 
         const response = await (
@@ -125,6 +130,7 @@ const SignupForm = ({role, navigation}: SignupFormProps) => {
         email: '',
         password: '',
         confirmPassword: '',
+        security_answer: '',
       }}
       validationSchema={validationSchema}
       onSubmit={(values: SignUpDetails) => {
@@ -261,6 +267,29 @@ const SignupForm = ({role, navigation}: SignupFormProps) => {
                   className="text-red-500"
                   style={{fontFamily: 'Montserrat-Regular'}}>
                   {errors.confirmPassword}
+                </Text>
+              )}
+            </View>
+            <View className="gap-y-2">
+              <Text
+                className="text-black"
+                style={{fontFamily: 'Montserrat-Medium'}}>
+                What is your birthplace ? (Security Question)
+              </Text>
+              <TextInput
+                className="bg-[#effff8] rounded-md text-black px-2"
+                style={{fontFamily: 'Montserrat-SemiBold'}}
+                placeholder="Enter your birthplace"
+                placeholderTextColor="#bdbebf"
+                onChangeText={handleChange('security_answer')}
+                onBlur={handleBlur('security_answer')}
+                value={values.security_answer}
+              />
+              {errors.security_answer && (
+                <Text
+                  className="text-red-500"
+                  style={{fontFamily: 'Montserrat-Regular'}}>
+                  {errors.security_answer}
                 </Text>
               )}
             </View>

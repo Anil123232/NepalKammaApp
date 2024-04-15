@@ -62,6 +62,12 @@ export const category = [
   {id: 10, name: 'gardening_farming'},
 ];
 
+export const experiesHours = [
+  {id: 1, name: '6 hour', value: 6},
+  {id: 2, name: '12 hour', value: 12},
+  {id: 3, name: '24 hour', value: 24},
+];
+
 export const categoryFilter = [
   {id: 1, name: 'All'},
   {id: 2, name: 'home_services'},

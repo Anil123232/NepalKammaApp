@@ -8,12 +8,13 @@ import {
   StyleSheet,
   Dimensions,
 } from 'react-native';
-import React, {useEffect, useRef} from 'react';
+import React, {memo, useCallback, useEffect, useRef} from 'react';
 import {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
 import {BottomStackParamsList} from '../../navigation/ButtonNavigatorSeeker';
 import {
   responsiveFontSize,
   responsiveHeight,
+  responsiveWidth,
 } from 'react-native-responsive-dimensions';
 import IonIcons from 'react-native-vector-icons/Ionicons';
 import {MessageStore} from './helper/MessageStore';
@@ -25,6 +26,7 @@ import {useSocket} from '../../contexts/SocketContext';
 import {formatDistanceToNow} from 'date-fns';
 import {useMessageStore} from '../../global/MessageCount';
 import MessageLoader from '../GlobalComponents/Loader/MessageLoader';
+import {FlashList} from '@shopify/flash-list';
 
 interface ActualMessageProps {
   navigation: BottomTabNavigationProp<BottomStackParamsList>;
@@ -69,77 +71,25 @@ const ActualMessage = ({navigation, route}: ActualMessageProps) => {
   const flatListRef = useRef<FlatList>(null);
 
   // Function to scroll to the bottom of the message list
-  const scrollToBottom = () => {
-    flatListRef.current?.scrollToEnd({animated: true});
-  };
+  const scrollToBottom = useCallback(() => {
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({animated: true});
+    }, 500);
+  }, []);
 
   useEffect(() => {
-    scrollToBottom(); // Scroll to bottom when messages change
-  }, [messages]);
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
 
-  useEffect(() => {
-    const fetchMessages = async () => {
-      setIsLoading(true);
-      try {
-        const response = await (MessageStore.getState() as any).getAllMessages(
-          route.params.conversation_id,
-        );
-        setMessages(response.result);
-        setOtherUser(response.otheruser);
-      } catch (error: any) {
-        const errorMessage = error
-          .toString()
-          .replace('[Error: ', '')
-          .replace(']', '');
-        ErrorToast(errorMessage);
-      }
-      setIsLoading(false);
-    };
-
-    const readAllMessages = async () => {
-      try {
-        await (MessageStore.getState() as any).readAllMessage(
-          route.params.conversation_id,
-        );
-        useMessageStore.setState(state => ({
-          messageCount: 0,
-        }));
-      } catch (error: any) {
-        const errorMessage = error
-          .toString()
-          .replace('[Error: ', '')
-          .replace(']', '');
-        ErrorToast(errorMessage);
-      }
-    };
-
-    const featchUnreadMessageCount = async () => {
-      await (useMessageStore.getState() as any).unreadMessageCount();
-    };
-    if (isFocused && route.params?.conversation_id) {
-      featchUnreadMessageCount();
-      readAllMessages();
-      fetchMessages();
-    }
-  }, [isFocused, route.params?.conversation_id, message]);
-
-  const sendMessageHandler = async (e: any) => {
+  //fetch messages
+  const fetchMessages = useCallback(async () => {
+    setIsLoading(true);
     try {
-      if (!message) return;
-      e.preventDefault();
-      const data = {
-        conversationId: route.params?.conversation_id,
-        msg: message,
-        recipientId: otherUser?._id,
-      };
-
-      const response = await (MessageStore.getState() as any).createMessage(
-        data,
+      const response = await (MessageStore.getState() as any).getAllMessages(
+        route.params.conversation_id,
       );
-      if (response) {
-        setMessage('');
-        setMessages(prev => [...prev, response?.messages]);
-      }
+      setMessages(response.result);
+      setOtherUser(response.otheruser);
     } catch (error: any) {
       const errorMessage = error
         .toString()
@@ -147,19 +97,86 @@ const ActualMessage = ({navigation, route}: ActualMessageProps) => {
         .replace(']', '');
       ErrorToast(errorMessage);
     }
+    setIsLoading(false);
+  }, [route.params.conversation_id]);
 
-    //for socket io
-    const messageData = {
-      sender: user?._id,
-      receiver: otherUser?._id,
-      message: message,
-      conversationId: route.params?.conversation_id,
-    };
-    socket.emit('textMessage', messageData);
-  };
+  //read all messages
+  const readAllMessages = useCallback(async () => {
+    try {
+      await (MessageStore.getState() as any).readAllMessage(
+        route.params.conversation_id,
+      );
+      useMessageStore.setState(state => ({
+        messageCount: 0,
+      }));
+    } catch (error: any) {
+      const errorMessage = error
+        .toString()
+        .replace('[Error: ', '')
+        .replace(']', '');
+      ErrorToast(errorMessage);
+    }
+  }, [route.params.conversation_id]);
 
+  //fetch unread message count
+  const featchUnreadMessageCount = useCallback(async () => {
+    await (useMessageStore.getState() as any).unreadMessageCount();
+  }, []);
+
+  useEffect(() => {
+    if (isFocused && route.params?.conversation_id) {
+      featchUnreadMessageCount();
+      readAllMessages();
+      fetchMessages();
+    }
+  }, [
+    isFocused,
+    route.params?.conversation_id,
+    featchUnreadMessageCount,
+    readAllMessages,
+    fetchMessages,
+  ]);
+
+  const sendMessageHandler = useCallback(
+    async (e: any) => {
+      setMessage('');
+      try {
+        if (!message || message === '') return;
+        e.preventDefault();
+        const data = {
+          conversationId: route.params?.conversation_id,
+          msg: message,
+          recipientId: otherUser?._id,
+        };
+
+        const response = await (MessageStore.getState() as any).createMessage(
+          data,
+        );
+        if (response) {
+          setMessage('');
+          setMessages(prev => [response?.messages, ...prev]);
+        }
+      } catch (error: any) {
+        const errorMessage = error
+          .toString()
+          .replace('[Error: ', '')
+          .replace(']', '');
+        ErrorToast(errorMessage);
+      }
+
+      // for socket io
+      const messageData = {
+        sender: user?._id,
+        receiver: otherUser?._id,
+        message: message,
+        conversationId: route.params?.conversation_id,
+      };
+      socket.emit('textMessage', messageData);
+    },
+    [message, otherUser?._id, route.params?.conversation_id, socket, user?._id],
+  );
   // phone handler
-  const phoneHandler = () => {
+  const phoneHandler = useCallback(() => {
     const phoneNumber = '9833035830';
     let phoneNumberWithPrefix = '';
 
@@ -172,10 +189,10 @@ const ActualMessage = ({navigation, route}: ActualMessageProps) => {
     Linking.openURL(phoneNumberWithPrefix).catch(err =>
       console.error('An error occurred: ', err),
     );
-  };
+  }, []);
 
-  useEffect(() => {
-    const messageListener = ({sender, message}: any) => {
+  const messageListener = useCallback(
+    ({sender, message}: any) => {
       setArrivalMessage({
         sender: sender,
         msg: message,
@@ -193,22 +210,25 @@ const ActualMessage = ({navigation, route}: ActualMessageProps) => {
           updatedAt: new Date().toISOString(),
         };
 
-        return [...prevMessages, newMessage];
+        return [newMessage, ...prevMessages];
       });
-    };
+    },
+    [route.params?.conversation_id],
+  );
 
+  useEffect(() => {
     socket?.on('textMessageFromBack', messageListener);
 
     return () => {
       socket?.off('textMessageFromBack', messageListener);
     };
-  }, [arrivalMessage, route.params?.conversation_id, socket]);
+  }, [arrivalMessage, route.params?.conversation_id, socket, messageListener]);
 
   //back button handler
-  const backbottonHandler = () => {
+  const backbottonHandler = useCallback(() => {
     setMessages([]);
     navigation.navigate('Message');
-  };
+  }, [navigation]);
 
   if (isLoading || (Array.isArray(messages) && messages.length === 0)) {
     return <MessageLoader />;
@@ -237,20 +257,28 @@ const ActualMessage = ({navigation, route}: ActualMessageProps) => {
             <IonIcons name="call" size={30} color="#79AC78" />
           </TouchableOpacity>
         </View>
-        <FlatList
-          ref={flatListRef}
-          onContentSizeChange={scrollToBottom}
-          style={styles.messagesContainer}
-          keyExtractor={(item, index) => index.toString()}
-          data={messages}
-          renderItem={({item}) => (
-            <Messages data={item} otheruser={otherUser} />
-          )}
-          contentContainerStyle={{
-            paddingBottom: responsiveHeight(5),
-            paddingTop: responsiveHeight(2),
-          }}
-        />
+        <View
+          style={{
+            height: responsiveHeight(80),
+            width: responsiveWidth(100),
+          }}>
+          <FlatList
+            ref={flatListRef}
+            onContentSizeChange={scrollToBottom}
+            onLayout={scrollToBottom} // Add this line
+            keyExtractor={(item, index) => index.toString()}
+            // estimatedItemSize={100}
+            initialNumToRender={10}
+            data={messages.slice().reverse()}
+            renderItem={({item}) => (
+              <Messages data={item} otheruser={otherUser} />
+            )}
+            contentContainerStyle={{
+              paddingBottom: responsiveHeight(5),
+              paddingTop: responsiveHeight(2),
+            }}
+          />
+        </View>
       </View>
 
       <View style={styles.inputContainer}>
@@ -271,7 +299,7 @@ const ActualMessage = ({navigation, route}: ActualMessageProps) => {
   );
 };
 
-const Messages = ({data, otheruser}: any) => {
+const Messages = React.memo(({data, otheruser}: any) => {
   const user: any = useGlobalStore((state: any) => state.user);
   const screenWidth = Dimensions.get('window').width;
   const maxWidth = screenWidth * 0.8;
@@ -334,7 +362,7 @@ const Messages = ({data, otheruser}: any) => {
       )}
     </>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -438,4 +466,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ActualMessage;
+export default React.memo(ActualMessage);

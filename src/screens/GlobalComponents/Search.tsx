@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {memo} from 'react';
 import {View, TextInput, TouchableOpacity, StyleSheet} from 'react-native';
 import IonIcons from 'react-native-vector-icons/Ionicons';
 import ModalBoxFilter from '../../components/ModalBoxFiter';
@@ -60,15 +60,25 @@ const Search = ({
           />
         )}
       </View>
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => setModalVisible(true)}>
-        <View>
-          <View style={styles.iconContainer}>
-            <IonIcons name="options-outline" color="black" size={25} />
+      {text === 'freelancers' ? (
+        <TouchableOpacity style={styles.button}>
+          <View>
+            <View style={styles.iconContainer}>
+              <IonIcons name="options-outline" color="black" size={25} />
+            </View>
           </View>
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => setModalVisible(true)}>
+          <View>
+            <View style={styles.iconContainer}>
+              <IonIcons name="options-outline" color="black" size={25} />
+            </View>
+          </View>
+        </TouchableOpacity>
+      )}
 
       <ModalBoxFilter
         isModalVisible={isModalVisible}
@@ -79,7 +89,7 @@ const Search = ({
         handleOkFunction={handleOkFunction}
         selectedDistance={selectedDistance}
         resetSearch={resetSearch}
-        // responseMessage={responseMessage}
+        setModalVisible={setModalVisible}
         modalMessage={`${
           user?.role === 'job_seeker' ? 'Filter Jobs' : 'Filter Gigs'
         }`}
@@ -120,4 +130,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Search;
+export default memo(Search);

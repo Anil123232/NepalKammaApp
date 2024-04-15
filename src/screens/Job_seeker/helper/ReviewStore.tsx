@@ -1,11 +1,20 @@
 import {create} from 'zustand';
 import {axios_auth} from '../../../global/config';
 
-export const UserStore = create(set => ({
-  users: [],
-  getJobSeekers: async (text: string) => {
+export const ReviewStore = create(set => ({
+  createReview: async (
+    reviewedBy: string,
+    reviewedTo: string,
+    review: string,
+    rating: number,
+  ) => {
     try {
-      const response = await axios_auth.get(`/user/job-seeker?search=${text}`);
+      const response = await axios_auth.post(`/review/createReview`, {
+        reviewedBy,
+        reviewedTo,
+        review,
+        rating,
+      });
       if (response.status === 200) {
         return response.data;
       }
@@ -18,10 +27,11 @@ export const UserStore = create(set => ({
       }
     }
   },
-  getNearByJobSeekers: async (latitude: number, longitude: number) => {
+
+  getReview: async (id: string) => {
     try {
       const response = await axios_auth.get(
-        `/user/getNearbyJobSeeker/${latitude}/${longitude}`,
+        `/review/getReviewByProvider/${id}`,
       );
       if (response.status === 200) {
         return response.data;
@@ -35,11 +45,9 @@ export const UserStore = create(set => ({
       }
     }
   },
-  getTotaljobsJobProvider: async (jobProviderId: string) => {
+  getAverageRating: async (id: string) => {
     try {
-      const response = await axios_auth.get(
-        `/user/count-job-posted/${jobProviderId}`,
-      );
+      const response = await axios_auth.get(`/review/getAverageRating/${id}`);
       if (response.status === 200) {
         return response.data;
       }

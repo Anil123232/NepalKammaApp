@@ -50,7 +50,7 @@ const ModalBoxJob = ({
         setSearchedUser(response.data?.user);
       }
     } catch (error) {
-      console.log(error);
+      ErrorToast('User not found');
     }
     setIsLoadingSearch(false);
   };
@@ -237,4 +237,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ModalBoxJob;
+export default React.memo(ModalBoxJob);

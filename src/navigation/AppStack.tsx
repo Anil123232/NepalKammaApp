@@ -9,6 +9,7 @@ import DrawerStack from './DrawerStack';
 import Loading from '../screens/GlobalComponents/Loading';
 import OtherProfile from '../screens/Job_provider/OtherProfile';
 import DrawerStackSeeker from './DrawerStackSeeker';
+import ForgetPass from '../screens/LoginSignup/ForgetPass';
 
 export type RootStackParamsList = {
   Onboarding: undefined;
@@ -18,6 +19,7 @@ export type RootStackParamsList = {
   Job_Seeker: undefined;
   Job_Provider: undefined;
   Other_Profile: {id: string};
+  forget_password: undefined;
 };
 
 const stack = createNativeStackNavigator();
@@ -44,8 +46,6 @@ const AppStack = () => {
 
   const checkIfHomePage: any = async () => {
     let onboarding = await getItem('onboarding');
-
-    console.log(onboarding)
 
     if (onboarding == '1') {
       setIsOnboarding(false);
@@ -87,6 +87,11 @@ const AppStack = () => {
       <stack.Screen
         name="OTP"
         component={OtpScreen}
+        options={{headerShown: false}}
+      />
+      <stack.Screen
+        name="forget_password"
+        component={ForgetPass}
         options={{headerShown: false}}
       />
       <stack.Screen

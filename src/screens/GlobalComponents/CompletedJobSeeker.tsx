@@ -5,7 +5,7 @@ import {
   Touchable,
   TouchableOpacity,
 } from 'react-native';
-import React from 'react';
+import React, {useCallback, useMemo, useRef} from 'react';
 import {Image} from 'react-native';
 import {
   responsiveFontSize,
@@ -16,12 +16,13 @@ import RenderHTML from 'react-native-render-html';
 import {systemFonts} from './Cards';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import {KhaltiStore} from './helper/KhaltiStore';
-import {ErrorToast} from 'react-native-toast-message';
 
-const CompletedJobSeeker = ({data, getCompletedJob}: any) => {
+const CompletedJobSeeker = ({
+  data,
+  handlePresentModalPress,
+  setSinglePaymentData,
+}: any) => {
   const {width} = useWindowDimensions();
-  const [isRequested, setIsRequested] = React.useState<boolean>(false);
 
   const generateHtmlPreview = () => {
     let html = `<p style="color: black;">${data?.job.job_description}</p>`;
@@ -30,32 +31,22 @@ const CompletedJobSeeker = ({data, getCompletedJob}: any) => {
   };
 
   const requestPaymentHandler = async () => {
-    setIsRequested(true);
-    try {
-      await (KhaltiStore.getState() as any).requestPayment(data?._id);
-      getCompletedJob();
-    } catch (error: any) {
-      const errorMessage = error
-        .toString()
-        .replace('[Error: ', '')
-        .replace(']', '');
-      ErrorToast(errorMessage);
-    }
-    setIsRequested(false);
+    handlePresentModalPress();
+    setSinglePaymentData(data);
   };
 
   return (
     <View>
       <View className="p-4 shadow-2xl flex flex-col bg-white">
-        <View className="py-2 px-4 my-2 bg-yellow-600 rounded-md flex flex-row items-center gap-x-1 w-[90%]">
-          <FontAwesome name="dollar" size={17} color="white" />
+        <View className="py-2 px-4 my-2 bg-gray-100 rounded-md flex flex-row items-center gap-x-1 w-[90%]">
+          <FontAwesome name="dollar" size={17} color="black" />
           <Text
-            className="text-white"
+            className="text-black"
             style={{
               fontFamily: 'Montserrat-SemiBold',
               fontSize: responsiveHeight(1.5),
             }}>
-            Amount {data?.amount}
+            Amount Rs.{data?.amount}/-
           </Text>
         </View>
         <View className="flex flex-row gap-x-4">
@@ -126,20 +117,35 @@ const CompletedJobSeeker = ({data, getCompletedJob}: any) => {
           </Text>
         </View>
         {data?.paymentStatus === 'request_payment' && (
-          <TouchableOpacity>
-            <View className="py-2 px-4 bg-color2 rounded-md flex flex-row justify-center items-center gap-x-1">
-              <MaterialIcons name="check" size={17} color="white" />
-              <Text
-                className=""
-                style={{
-                  fontFamily: 'Montserrat-SemiBold',
-                  fontSize: responsiveHeight(1.5),
-                  color: 'white',
-                }}>
-                Requested
-              </Text>
-            </View>
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity>
+              <View className="py-2 px-4 mb-3 bg-gray-100 rounded-md flex flex-row justify-center items-center gap-x-1">
+                <Text
+                  className="text-black"
+                  style={{
+                    fontFamily: 'Montserrat-SemiBold',
+                    fontSize: responsiveHeight(1.5),
+                    color: 'black',
+                  }}>
+                  Payment will be done soon: {data?.recieverNumber}
+                </Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity>
+              <View className="py-2 px-4 bg-color2 rounded-md flex flex-row justify-center items-center gap-x-1">
+                <MaterialIcons name="check" size={17} color="white" />
+                <Text
+                  className=""
+                  style={{
+                    fontFamily: 'Montserrat-SemiBold',
+                    fontSize: responsiveHeight(1.5),
+                    color: 'white',
+                  }}>
+                  Requested
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </>
         )}
         {data?.paymentStatus === 'provider_paid' && (
           <TouchableOpacity
@@ -155,7 +161,8 @@ const CompletedJobSeeker = ({data, getCompletedJob}: any) => {
                   fontSize: responsiveHeight(1.5),
                   color: 'white',
                 }}>
-                {isRequested ? 'Requesting...' : 'Request Payment'}
+                {/* {isRequested ? 'Requesting...' : 'Request Payment'} */}
+                Request Payment
               </Text>
             </View>
           </TouchableOpacity>

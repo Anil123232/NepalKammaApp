@@ -1,19 +1,14 @@
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  FlatList,
-  PermissionsAndroid,
-} from 'react-native';
-import React, {useCallback, useEffect, useMemo, useRef} from 'react';
+import {View, Text, TouchableOpacity, PermissionsAndroid} from 'react-native';
+import {FlashList} from '@shopify/flash-list';
+import React, {useCallback, useEffect, useMemo, useRef, memo} from 'react';
 import {useGlobalStore} from '../../global/store';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {RootStackParamsList} from '../../navigation/AppStack';
-import {createDrawerNavigator} from '@react-navigation/drawer';
 import TopNav from '../GlobalComponents/TopNav';
 import {
   responsiveFontSize,
   responsiveHeight,
+  responsiveWidth,
 } from 'react-native-responsive-dimensions';
 import Cards from '../GlobalComponents/Cards';
 import {TouchableWithoutFeedback} from 'react-native-gesture-handler';
@@ -26,12 +21,12 @@ import {BottomStackParamsList} from '../../navigation/ButtonNavigator';
 import {useSocket} from '../../contexts/SocketContext';
 import {useMessageStore} from '../../global/MessageCount';
 import {useIsFocused} from '@react-navigation/native';
-import HomeSearch from '../GlobalComponents/HomeSearch';
 import Search from '../GlobalComponents/Search';
 import {ErrorToast} from '../../components/ErrorToast';
 import Geolocation from 'react-native-geolocation-service';
-import useLocationStore, {LocationState} from '../../global/useLocationStore';
+import useLocationStore from '../../global/useLocationStore';
 import {myLocationProps} from '../Job_seeker/Home';
+import {useNotificationCount} from '../../global/NotificationCount';
 
 interface logOutProps {
   navigation: StackNavigationProp<RootStackParamsList>;
@@ -45,6 +40,15 @@ export type userStateProps = {
   isVerified: boolean;
   role: string;
   username: string;
+  location: string;
+  profilePic: any;
+  title: string;
+  skills: any[];
+  isTick: boolean;
+  bio: string;
+  about_me: string;
+  phoneNumber: string;
+  isDocumentVerified: string;
 };
 
 type dataProps = {
@@ -65,7 +69,7 @@ export const initialGigData: GigData = {
   gig: [],
 };
 
-const Home = ({navigation, bottomNavigation}: logOutProps) => {
+const Home = memo(({navigation, bottomNavigation}: logOutProps) => {
   const user: userStateProps = useGlobalStore((state: any) => state.user);
   const [isPopular, setIsPopular] = React.useState<boolean>(true);
   const [selectedData, setSelectedData] = React.useState<any>(null);
@@ -98,6 +102,8 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
 
   const [nearByGigDetails, setNearByGigDetails] = React.useState<any>([]);
 
+  const [isLoadingBottom, setIsLoadingBottom] = React.useState<boolean>(true);
+
   const [currentPage, setCurrentPage] = React.useState<number>(1);
   const [totalPages, setTotalPages] = React.useState<number>(1);
   const [totalGigs, setTotalGigs] = React.useState<number>(0);
@@ -117,79 +123,83 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
   const handlePresentModalPress = useCallback(() => {
     bottomSheetModalRef.current?.present();
   }, []);
-  const handleSheetChanges = useCallback((index: number) => {
-    console.log('handleSheetChanges', index);
-  }, []);
+
   const setLocation = useLocationStore((state: any) => state.setLocation);
 
   //search gig
-  const searchGig = async (
-    searchText: string,
-    selectedCategory: string,
-    selectedDistance: any,
-    lowToHigh: boolean,
-    highTolow: boolean,
-    sortByRating: boolean,
-    page: number,
-    limit: number,
-    lat: number,
-    long: number,
-  ) => {
-    try {
-      const response = await (FetchGigStore.getState() as any).searchGig(
-        searchText,
-        selectedCategory,
-        selectedDistance,
-        lowToHigh,
-        highTolow,
-        sortByRating,
-        page,
-        limit,
-        lat,
-        long,
-      );
-      setgigDetails({
-        gig: [],
-        // nearBy: [],
-      });
-      setTotalGigs(response?.totalGigs);
-      setgigDetails(prevGig => ({
-        ...prevGig,
-        gig: [...response.gig],
-      }));
+  const searchGig = useCallback(
+    async (
+      searchText: string,
+      selectedCategory: string,
+      selectedDistance: any,
+      lowToHigh: boolean,
+      highTolow: boolean,
+      sortByRating: boolean,
+      page: number,
+      limit: number,
+      lat: number,
+      long: number,
+    ) => {
+      try {
+        const response = await (FetchGigStore.getState() as any).searchGig(
+          searchText,
+          selectedCategory,
+          selectedDistance,
+          lowToHigh,
+          highTolow,
+          sortByRating,
+          page,
+          limit,
+          lat,
+          long,
+        );
+        setgigDetails({
+          gig: [],
+          // nearBy: [],
+        });
+        setTotalGigs(response?.totalGigs);
+        setgigDetails(prevGig => ({
+          ...prevGig,
+          gig: [...response.gig],
+        }));
 
-      if (response.totalPages !== undefined) {
-        setTotalPages(response.totalPages);
+        if (response.totalPages !== undefined) {
+          setTotalPages(response.totalPages);
+        }
+        if (response.currentPage !== undefined) {
+          setCurrentPage(response.currentPage);
+        }
+      } catch (error: any) {
+        const errorMessage = error
+          .toString()
+          .replace('[Error: ', '')
+          .replace(']', '');
+        ErrorToast(errorMessage);
       }
-      if (response.currentPage !== undefined) {
-        setCurrentPage(response.currentPage);
-      }
-    } catch (error: any) {
-      const errorMessage = error
-        .toString()
-        .replace('[Error: ', '')
-        .replace(']', '');
-      ErrorToast(errorMessage);
-    }
-    setIsLoading(false);
-  };
+      setIsLoading(false);
+    },
+    [],
+  );
 
   //get near by Gig
-  const getNearbyGig = async (latitude: number, longitude: number) => {
-    const response = await (FetchGigStore.getState() as any).getNearbyGig(
-      latitude,
-      longitude,
-    );
-    setNearByGigDetails(response);
-  };
+  const getNearbyGig = useCallback(
+    async (latitude: number, longitude: number) => {
+      const response = await (FetchGigStore.getState() as any).getNearbyGig(
+        latitude,
+        longitude,
+      );
+      setNearByGigDetails(response);
+    },
+    [],
+  );
 
-  const requestLocationPermission = async () => {
+  const requestLocationPermission = useCallback(async () => {
     try {
       const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         {
           title: 'NepalKamma App Location Permission',
-          message: 'NepalKamma App needs access to your Location ',
+          message: 'NepalKamma App needs access to your Location',
           buttonNeutral: 'Ask Me Later',
           buttonNegative: 'Cancel',
           buttonPositive: 'OK',
@@ -216,33 +226,39 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
               position.coords.longitude,
             );
             getNearbyGig(position.coords.latitude, position.coords.longitude);
-
             setIsLoading(false);
           },
-          error => {
-            // See error code charts below.
-            console.log(error.code, error.message);
-          },
+          error => ErrorToast("Something went wrong, can't get location"),
           {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
         );
       } else {
-        console.log('Location permission denied');
+        ErrorToast('Location permission denied');
       }
     } catch (err: any) {
       ErrorToast(err.message);
     }
-  };
+  }, [searchGig, getNearbyGig, setLocation]);
 
-  const readUnreadMessage = async () => {
+  const readUnreadMessage = useCallback(async () => {
     await (useMessageStore.getState() as any).unreadMessageCount();
-  };
+  }, []);
+
+  const readUnreadNotification = useCallback(async () => {
+    await (useNotificationCount.getState() as any).unreadNotification();
+  }, []);
 
   useEffect(() => {
     if (isFocused) {
       readUnreadMessage();
+      readUnreadNotification();
       requestLocationPermission();
     }
-  }, [isFocused]);
+  }, [
+    isFocused,
+    readUnreadMessage,
+    readUnreadNotification,
+    requestLocationPermission,
+  ]);
 
   const socket = useSocket();
 
@@ -253,6 +269,20 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
         userId: user?._id,
       });
     }
+  }, [socket, user?.username, user?._id]);
+
+  useEffect(() => {
+    const messageListener = async (newNotification: any) => {
+      useNotificationCount.setState(state => ({
+        notificationCount: state.notificationCount + 1,
+      }));
+    };
+
+    socket?.on('notificationForLocationAndRecommend', messageListener);
+
+    return () => {
+      socket?.off('notificationForLocationAndRecommend', messageListener);
+    };
   }, [socket]);
 
   useEffect(() => {
@@ -260,7 +290,6 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
       useMessageStore.setState(state => ({
         messageCount: state.messageCount + 1,
       }));
-      console.log('hello');
     };
 
     socket?.on('textMessageFromBack', messageListener);
@@ -270,11 +299,10 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
     };
   }, [socket]);
 
-  const handleOkFunction = () => {
+  const handleOkFunction = useCallback(() => {
     setModalVisible(false);
     setIsLoading(true);
     setTotalGigs(0);
-
     searchGig(
       searchText,
       selectedCategory,
@@ -287,17 +315,19 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
       myLocation.latitude,
       myLocation.longitude,
     );
-    console.log(
-      selectedDistance,
-      lowToHigh,
-      highToLow,
-      sortByRating,
-      selectedCategory,
-      searchText,
-    );
-  };
+  }, [
+    searchGig,
+    searchText,
+    selectedCategory,
+    selectedDistance,
+    lowToHigh,
+    highToLow,
+    sortByRating,
+    myLocation.latitude,
+    myLocation.longitude,
+  ]);
 
-  const resetSearch = () => {
+  const resetSearch = useCallback(() => {
     setModalVisible(false);
     setIsLoading(true);
     setTotalGigs(0);
@@ -319,32 +349,26 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
       myLocation.latitude,
       myLocation.longitude,
     );
-  };
+  }, [searchGig, myLocation.latitude, myLocation.longitude]);
 
-  // const handleEndReached = () => {
-  //   if (!isFetchingMore && currentPage < totalPages) {
-  //     const nextPage = currentPage + 1;
-  //     setIsFetchingMore(true);
-  //     searchJob(
-  //       searchText,
-  //       selectedCategory,
-  //       selectedDistance,
-  //       lowToHigh,
-  //       highToLow,
-  //       sortByRating,
-  //       nextPage,
-  //       5,
-  //       location.latitude,
-  //       location.longitude,
-  //     )
-  //       .then(() => setIsFetchingMore(false))
-  //       .catch(error => {
-  //         console.error('Error fetching more data:', error);
-  //         setIsFetchingMore(false);
-  //       });
-  //   }
-  //   console.log('hitted');
-  // };
+  const setPopularTrueFunction = useCallback(() => {
+    setIsPopular(true);
+  }, [isPopular]);
+
+  const setPopularFalseFunction = useCallback(() => {
+    setIsPopular(false);
+  }, [isPopular]);
+
+  const setSelectedItemHandler = useCallback((item: any) => {
+    setSelectedData(item);
+    handlePresentModalPress();
+  }, []);
+
+  useEffect(() => {
+    if (selectedData) {
+      setIsLoadingBottom(false);
+    }
+  }, [selectedData]);
 
   return (
     <BottomSheetModalProvider>
@@ -410,7 +434,7 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
                 className={`w-[50%] py-3 ${
                   isPopular && 'border-b-2 border-color2'
                 }  `}>
-                <TouchableOpacity onPress={() => setIsPopular(true)}>
+                <TouchableOpacity onPress={setPopularTrueFunction}>
                   <Text
                     className={isPopular ? 'text-color2' : 'text-gray-500'}
                     style={{
@@ -425,7 +449,7 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
                 className={`w-[50%] items-center justify-center flex py-3 ${
                   !isPopular && 'border-b-2 border-color2'
                 }  `}>
-                <TouchableOpacity onPress={() => setIsPopular(false)}>
+                <TouchableOpacity onPress={setPopularFalseFunction}>
                   <Text
                     className={isPopular ? 'text-gray-500' : 'text-color2'}
                     style={{
@@ -440,77 +464,91 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
             {/* text end  */}
             {/* */}
             {isLoading && (
-              <FlatList
-                data={[1, 1, 1, 1, 1]}
-                renderItem={({item, index}) => <CardLoader />}
-              />
+              <View
+                style={{
+                  height: responsiveHeight(70),
+                  width: responsiveWidth(90),
+                }}>
+                <FlashList
+                  data={[1, 1, 1, 1, 1]}
+                  estimatedItemSize={5}
+                  renderItem={({item, index}) => <CardLoader />}
+                />
+              </View>
             )}
             {!isLoading && isPopular && (
-              <FlatList
-                keyExtractor={item => item._id.toString()}
-                initialNumToRender={5}
-                data={gigDetails?.gig?.slice(0, 5)}
-                renderItem={({item}) => (
-                  <TouchableWithoutFeedback
-                    onPress={() => {
-                      setSelectedData(item);
-                      handlePresentModalPress();
-                    }}>
-                    <Cards data={item} user={user} />
-                  </TouchableWithoutFeedback>
-                )}
-                ListEmptyComponent={() => (
-                  // Render this component when there's no data
-                  <View style={{paddingBottom: responsiveHeight(25)}}>
-                    <Text
-                      className="text-red-500"
-                      style={{
-                        fontFamily: 'Montserrat-Bold',
-                        fontSize: responsiveFontSize(1.75),
-                      }}>
-                      No Gigs available
-                    </Text>
-                  </View>
-                )}
-                contentContainerStyle={{
-                  paddingBottom: responsiveHeight(50),
-                  paddingTop: responsiveHeight(2),
-                }}
-                showsVerticalScrollIndicator={false}></FlatList>
+              <View
+                style={{
+                  height: responsiveHeight(70),
+                  width: responsiveWidth(90),
+                }}>
+                <FlashList
+                  keyExtractor={item => item._id.toString()}
+                  estimatedItemSize={5}
+                  data={gigDetails?.gig?.slice(0, 5)}
+                  renderItem={({item}) => (
+                    <TouchableWithoutFeedback
+                      onPress={() => setSelectedItemHandler(item)}>
+                      <Cards data={item} user={user} />
+                    </TouchableWithoutFeedback>
+                  )}
+                  ListEmptyComponent={() => (
+                    // Render this component when there's no data
+                    <View style={{paddingBottom: responsiveHeight(25)}}>
+                      <Text
+                        className="text-red-500"
+                        style={{
+                          fontFamily: 'Montserrat-Bold',
+                          fontSize: responsiveFontSize(1.75),
+                        }}>
+                        No Gigs available
+                      </Text>
+                    </View>
+                  )}
+                  contentContainerStyle={{
+                    paddingBottom: responsiveHeight(50),
+                    paddingTop: responsiveHeight(2),
+                  }}
+                  showsVerticalScrollIndicator={false}
+                />
+              </View>
             )}
-
             {!isLoading && !isPopular && (
-              <FlatList
-                keyExtractor={item => item._id.toString()}
-                initialNumToRender={5}
-                data={nearByGigDetails?.nearByGigs?.slice(0, 5)}
-                renderItem={({item}) => (
-                  <TouchableWithoutFeedback
-                    onPress={() => {
-                      setSelectedData(item);
-                      handlePresentModalPress();
-                    }}>
-                    <Cards data={item} user={user} />
-                  </TouchableWithoutFeedback>
-                )}
-                ListEmptyComponent={() => (
-                  // Render this component when there's no data
-                  <View style={{paddingBottom: responsiveHeight(25)}}>
-                    <Text
-                      className="text-red-500"
-                      style={{
-                        fontFamily: 'Montserrat-Bold',
-                        fontSize: responsiveFontSize(1.75),
-                      }}>
-                      No near by Gigs available
-                    </Text>
-                  </View>
-                )}
-                contentContainerStyle={{
-                  paddingBottom: responsiveHeight(50),
-                  paddingTop: responsiveHeight(2),
-                }}
-                showsVerticalScrollIndicator={false}></FlatList>
+              <View
+                style={{
+                  height: responsiveHeight(70),
+                  width: responsiveWidth(90),
+                }}>
+                <FlashList
+                  keyExtractor={(item: any) => item._id.toString()}
+                  estimatedItemSize={5}
+                  data={nearByGigDetails?.nearByGigs?.slice(0, 5)}
+                  renderItem={({item}) => (
+                    <TouchableWithoutFeedback
+                      onPress={() => setSelectedItemHandler(item)}>
+                      <Cards data={item} user={user} />
+                    </TouchableWithoutFeedback>
+                  )}
+                  ListEmptyComponent={() => (
+                    // Render this component when there's no data
+                    <View style={{paddingBottom: responsiveHeight(25)}}>
+                      <Text
+                        className="text-red-500"
+                        style={{
+                          fontFamily: 'Montserrat-Bold',
+                          fontSize: responsiveFontSize(1.75),
+                        }}>
+                        No near by Gigs available
+                      </Text>
+                    </View>
+                  )}
+                  contentContainerStyle={{
+                    paddingBottom: responsiveHeight(50),
+                    paddingTop: responsiveHeight(2),
+                  }}
+                  showsVerticalScrollIndicator={false}
+                />
+              </View>
             )}
             <BottomSheetModal
               ref={bottomSheetModalRef}
@@ -529,15 +567,12 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
                 flex: 1,
                 overflow: 'scroll',
               }}
-              snapPoints={snapPoints}
-              onChange={handleSheetChanges}>
-              {/* <View className="flex flex-1 items-center rounded-t-2xl"> */}
+              snapPoints={snapPoints}>
               <BottomSheetCard
                 bottomSheetModalRef={bottomSheetModalRef}
                 data={selectedData}
                 navigation={bottomNavigation}
               />
-              {/* </View> */}
             </BottomSheetModal>
           </View>
           {/* body end  */}
@@ -545,6 +580,6 @@ const Home = ({navigation, bottomNavigation}: logOutProps) => {
       </View>
     </BottomSheetModalProvider>
   );
-};
+});
 
 export default Home;

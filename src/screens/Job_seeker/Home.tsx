@@ -1,20 +1,12 @@
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  FlatList,
-  PermissionsAndroid,
-} from 'react-native';
+import {View, Text, TouchableOpacity, PermissionsAndroid} from 'react-native';
 import React, {useCallback, useEffect, useMemo, useRef} from 'react';
 import {useGlobalStore} from '../../global/store';
-import {
-  DrawerNavigationProp,
-  createDrawerNavigator,
-} from '@react-navigation/drawer';
+import {DrawerNavigationProp} from '@react-navigation/drawer';
 import TopNav from '../GlobalComponents/TopNav';
 import {
   responsiveFontSize,
   responsiveHeight,
+  responsiveWidth,
 } from 'react-native-responsive-dimensions';
 import Cards from '../GlobalComponents/Cards';
 import {TouchableWithoutFeedback} from 'react-native-gesture-handler';
@@ -32,6 +24,8 @@ import {useMessageStore} from '../../global/MessageCount';
 import {useIsFocused} from '@react-navigation/native';
 import useLocationStore from '../../global/useLocationStore';
 import HomeSearch from '../GlobalComponents/HomeSearch';
+import {useNotificationCount} from '../../global/NotificationCount';
+import {FlashList} from '@shopify/flash-list';
 
 interface profileProps {
   navigation: DrawerNavigationProp<DrawerStackParamsListSeeker>;
@@ -54,12 +48,8 @@ export type userStateProps = {
   about_me: string;
   phoneNumber: string;
   isDocumentVerified: string;
-};
-
-type dataProps = {
-  id: number;
-  what: string;
-  text: string;
+  savedPostJob: any;
+  documents: any;
 };
 
 export interface JobDetails {
@@ -126,17 +116,32 @@ const Home = ({navigation, bottomNavigation}: profileProps) => {
 
   const socket = useSocket();
 
-  const readUnreadMessage = async () => {
+  const readUnreadMessage = useCallback(async () => {
     await (useMessageStore.getState() as any).unreadMessageCount();
-  };
+  }, []);
+
+  const readUnreadNotification = useCallback(async () => {
+    await (useNotificationCount.getState() as any).unreadNotification();
+  }, []);
 
   useEffect(() => {
     if (socket) {
-      socket?.emit('addUser', {
-        username: user?.username,
-        userId: user?._id,
-      });
+      socket.emit('addUser', {username: user?.username, userId: user?._id});
     }
+  }, [socket, user]);
+
+  useEffect(() => {
+    const messageListener = async (newNotification: any) => {
+      useNotificationCount.setState(state => ({
+        notificationCount: state.notificationCount + 1,
+      }));
+    };
+
+    socket?.on('notificationForLocationAndRecommend', messageListener);
+
+    return () => {
+      socket?.off('notificationForLocationAndRecommend', messageListener);
+    };
   }, [socket]);
 
   useEffect(() => {
@@ -144,7 +149,6 @@ const Home = ({navigation, bottomNavigation}: profileProps) => {
       useMessageStore.setState(state => ({
         messageCount: state.messageCount + 1,
       }));
-      console.log('hello');
     };
 
     socket?.on('textMessageFromBack', messageListener);
@@ -154,62 +158,67 @@ const Home = ({navigation, bottomNavigation}: profileProps) => {
     };
   }, [socket]);
 
-  const Drawer = createDrawerNavigator();
-
-  // ref
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
-
-  // variables
   const snapPoints = useMemo(() => ['50%', '90%'], []);
 
-  // callbacks
   const handlePresentModalPress = useCallback(() => {
     bottomSheetModalRef.current?.present();
   }, []);
-  const handleSheetChanges = useCallback((index: number) => {
-    console.log('handleSheetChanges', index);
+
+  const handleSheetChanges = useCallback((index: number) => {}, []);
+
+  const getJobDetails = useCallback(async () => {
+    try {
+      const response = await (FetchJobStore.getState() as getJobProps).getJob(
+        1,
+        5,
+      );
+      setJobDetails(response);
+    } catch (error: any) {
+      ErrorToast(error.toString().replace('[Error: ', '').replace(']', ''));
+    }
   }, []);
 
-  //get all job details
-  const getJobDetails = async () => {
-    const response = await (FetchJobStore.getState() as getJobProps).getJob(
-      1,
-      5,
-    );
-    setJobDetails(response);
-    // setIsLoading(false);
-  };
+  const getNearbyJob = useCallback(
+    async (latitude: number, longitude: number) => {
+      try {
+        const response = await (
+          FetchJobStore.getState() as getJobProps
+        ).getNearbyJob(latitude, longitude);
+        setNearByJobDetails(response);
+      } catch (error: any) {
+        ErrorToast(error.toString().replace('[Error: ', '').replace(']', ''));
+      }
+    },
+    [],
+  );
 
-  //get near by job
-  const getNearbyJob = async (latitude: number, longitude: number) => {
-    const response = await (
-      FetchJobStore.getState() as getJobProps
-    ).getNearbyJob(latitude, longitude);
-    setNearByJobDetails(response);
-  };
-
-  //get recommended job
-  const getRecommendedJob = async () => {
-    const response = await (
-      FetchJobStore.getState() as getJobProps
-    ).getJobRecommendation();
-    setRecommendedJob(response);
-  };
+  const getRecommendedJob = useCallback(async () => {
+    try {
+      const response = await (
+        FetchJobStore.getState() as getJobProps
+      ).getJobRecommendation();
+      setRecommendedJob(response);
+    } catch (error: any) {
+      ErrorToast(error.toString().replace('[Error: ', '').replace(']', ''));
+    }
+  }, []);
 
   useEffect(() => {
     if (isFocused) {
       readUnreadMessage();
+      readUnreadNotification();
       requestLocationPermission();
     }
-  }, []);
+  }, [isFocused, readUnreadMessage, readUnreadNotification]);
 
-  const requestLocationPermission = async () => {
+  const requestLocationPermission = useCallback(async () => {
     try {
       const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         {
           title: 'NepalKamma App Location Permission',
-          message: 'NepalKamma App needs access to your Location ',
+          message: 'NepalKamma App needs access to your Location',
           buttonNeutral: 'Ask Me Later',
           buttonNegative: 'Cancel',
           buttonPositive: 'OK',
@@ -228,19 +237,25 @@ const Home = ({navigation, bottomNavigation}: profileProps) => {
             getRecommendedJob();
             setIsLoading(false);
           },
-          error => {
-            // See error code charts below.
-            console.log(error.code, error.message);
-          },
+          error => ErrorToast("Can't get location"),
           {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
         );
       } else {
-        console.log('Location permission denied');
+        ErrorToast('Location permission denied');
       }
     } catch (err: any) {
       ErrorToast(err.message);
     }
-  };
+  }, [getNearbyJob, getJobDetails, getRecommendedJob, setLocation]);
+
+  const setCurrentTabHandler = useCallback((item: string) => {
+    setCurrentTab(item);
+  }, []);
+
+  const setSelectedItemHandler = useCallback((item: any) => {
+    setSelectedData(item);
+    handlePresentModalPress();
+  }, []);
 
   return (
     <BottomSheetModalProvider>
@@ -301,7 +316,8 @@ const Home = ({navigation, bottomNavigation}: profileProps) => {
                 className={`w-[33.33%] py-3 ${
                   currentTab === 'Best Matches' && 'border-b-2 border-color2'
                 } items-center  `}>
-                <TouchableOpacity onPress={() => setCurrentTab('Best Matches')}>
+                <TouchableOpacity
+                  onPress={() => setCurrentTabHandler('Best Matches')}>
                   <Text
                     className={
                       currentTab === 'Best Matches'
@@ -321,7 +337,8 @@ const Home = ({navigation, bottomNavigation}: profileProps) => {
                 className={`w-[33.33%] py-3 ${
                   currentTab === 'Most Recent' && 'border-b-2 border-color2'
                 } items-center `}>
-                <TouchableOpacity onPress={() => setCurrentTab('Most Recent')}>
+                <TouchableOpacity
+                  onPress={() => setCurrentTabHandler('Most Recent')}>
                   <Text
                     className={
                       currentTab === 'Most Recent'
@@ -341,7 +358,8 @@ const Home = ({navigation, bottomNavigation}: profileProps) => {
                 className={`w-[33.33%] items-center justify-center flex py-3 ${
                   currentTab === 'Nearby' && 'border-b-2 border-color2'
                 } items-center `}>
-                <TouchableOpacity onPress={() => setCurrentTab('Nearby')}>
+                <TouchableOpacity
+                  onPress={() => setCurrentTabHandler('Nearby')}>
                   <Text
                     className={
                       currentTab === 'Nearby' ? 'text-color2' : 'text-gray-500'
@@ -359,113 +377,142 @@ const Home = ({navigation, bottomNavigation}: profileProps) => {
 
             {/* Best Matches  */}
             {isLoading && (
-              <FlatList
-                data={[1, 1, 1, 1, 1]}
-                renderItem={({item, index}) => <CardLoader />}
-              />
+              <View
+                style={{
+                  height: responsiveHeight(70),
+                  width: responsiveWidth(90),
+                }}>
+                <FlashList
+                  data={[1, 1, 1, 1, 1]}
+                  estimatedItemSize={100}
+                  renderItem={({item, index}) => <CardLoader />}
+                />
+              </View>
             )}
             {!isLoading && currentTab === 'Best Matches' && (
-              <FlatList
-                keyExtractor={item => item._id?.toString() || ''}
-                data={recommendedJob?.recommendJobsList?.slice(0, 5)}
-                renderItem={({item}) => (
-                  <TouchableWithoutFeedback
-                    onPress={() => {
-                      setSelectedData(item);
-                      handlePresentModalPress();
-                    }}>
-                    <Cards data={item} user={user} />
-                  </TouchableWithoutFeedback>
-                )}
-                ListEmptyComponent={() => (
-                  // Render this component when there's no data
-                  <View style={{paddingBottom: responsiveHeight(25)}}>
-                    <Text
-                      className="text-red-500"
-                      style={{
-                        fontFamily: 'Montserrat-Bold',
-                        fontSize: responsiveFontSize(1.75),
-                      }}>
-                      No recommended jobs available
-                    </Text>
-                    <Text
-                      className="text-color2"
-                      style={{
-                        fontFamily: 'Montserrat-Bold',
-                        fontSize: responsiveFontSize(1.75),
-                      }}>
-                      Complete your profile to get recommended jobs
-                    </Text>
-                  </View>
-                )}
-                contentContainerStyle={{
-                  paddingBottom: responsiveHeight(50),
-                  paddingTop: responsiveHeight(1),
-                }}
-                ListFooterComponent={
-                  <View style={{height: 50, backgroundColor: 'white'}} />
-                }
-                showsVerticalScrollIndicator={false}></FlatList>
+              <View
+                style={{
+                  height: responsiveHeight(70),
+                  width: responsiveWidth(90),
+                }}>
+                <FlashList
+                  keyExtractor={item => item._id?.toString() || ''}
+                  data={recommendedJob?.recommendJobsList}
+                  estimatedItemSize={120}
+                  renderItem={({item}) => (
+                    <TouchableWithoutFeedback
+                      onPress={() => setSelectedItemHandler(item)}>
+                      <Cards data={item} user={user} />
+                    </TouchableWithoutFeedback>
+                  )}
+                  ListEmptyComponent={() => (
+                    // Render this component when there's no data
+                    <View style={{paddingBottom: responsiveHeight(25)}}>
+                      <Text
+                        className="text-red-500"
+                        style={{
+                          fontFamily: 'Montserrat-Bold',
+                          fontSize: responsiveFontSize(1.75),
+                        }}>
+                        No recommended jobs available
+                      </Text>
+                      <Text
+                        className="text-color2"
+                        style={{
+                          fontFamily: 'Montserrat-Bold',
+                          fontSize: responsiveFontSize(1.75),
+                        }}>
+                        Complete your profile to get recommended jobs
+                      </Text>
+                    </View>
+                  )}
+                  contentContainerStyle={{
+                    paddingBottom: responsiveHeight(50),
+                    paddingTop: responsiveHeight(1),
+                  }}
+                  ListFooterComponent={
+                    <View style={{height: 50, backgroundColor: 'white'}} />
+                  }
+                  showsVerticalScrollIndicator={false}></FlashList>
+              </View>
             )}
             {/* Most Recent  */}
             {!isLoading && currentTab === 'Most Recent' && (
-              <FlatList
-                keyExtractor={item => item._id.toString()}
-                data={jobDetails?.job}
-                renderItem={({item}) => (
-                  <TouchableWithoutFeedback
-                    onPress={() => {
-                      setSelectedData(item);
-                      handlePresentModalPress();
-                    }}>
-                    <Cards data={item} user={user} />
-                  </TouchableWithoutFeedback>
-                )}
-                ListEmptyComponent={() => (
-                  // Render this component when there's no data
-                  <View style={{paddingBottom: responsiveHeight(25)}}>
-                    <Text
-                      className="text-red-500"
-                      style={{
-                        fontFamily: 'Montserrat-Bold',
-                        fontSize: responsiveFontSize(1.75),
-                      }}>
-                      No jobs available
-                    </Text>
-                  </View>
-                )}
-                contentContainerStyle={{
-                  paddingBottom: responsiveHeight(50),
-                  paddingTop: responsiveHeight(1),
-                }}
-                ListFooterComponent={
-                  <View style={{height: 50, backgroundColor: 'white'}} />
-                }
-                showsVerticalScrollIndicator={false}></FlatList>
+              <View
+                style={{
+                  height: responsiveHeight(70),
+                  width: responsiveWidth(90),
+                }}>
+                <FlashList
+                  keyExtractor={item => item._id.toString()}
+                  data={jobDetails?.job}
+                  estimatedItemSize={120}
+                  renderItem={({item}) => (
+                    <TouchableWithoutFeedback
+                      onPress={() => setSelectedItemHandler(item)}>
+                      <Cards data={item} user={user} />
+                    </TouchableWithoutFeedback>
+                  )}
+                  ListEmptyComponent={() => (
+                    <View style={{paddingBottom: responsiveHeight(25)}}>
+                      <Text
+                        className="text-red-500"
+                        style={{
+                          fontFamily: 'Montserrat-Bold',
+                          fontSize: responsiveFontSize(1.75),
+                        }}>
+                        No jobs available
+                      </Text>
+                    </View>
+                  )}
+                  contentContainerStyle={{
+                    paddingBottom: responsiveHeight(50),
+                    paddingTop: responsiveHeight(1),
+                  }}
+                  ListFooterComponent={
+                    <View style={{height: 50, backgroundColor: 'white'}} />
+                  }
+                  showsVerticalScrollIndicator={false}></FlashList>
+              </View>
             )}
             {/* Near by Work */}
             {!isLoading && currentTab === 'Nearby' && (
-              <FlatList
-                keyExtractor={item => item._id.toString()}
-                initialNumToRender={5}
-                data={nearByJobDetails?.nearBy?.slice(0, 5)}
-                renderItem={({item}) => (
-                  <TouchableWithoutFeedback
-                    onPress={() => {
-                      setSelectedData(item);
-                      handlePresentModalPress();
-                    }}>
-                    <Cards data={item} user={user} />
-                  </TouchableWithoutFeedback>
-                )}
-                contentContainerStyle={{
-                  paddingBottom: responsiveHeight(50),
-                  paddingTop: responsiveHeight(1),
-                }}
-                ListFooterComponent={
-                  <View style={{height: 50, backgroundColor: 'white'}} />
-                }
-                showsVerticalScrollIndicator={false}></FlatList>
+              <View
+                style={{
+                  height: responsiveHeight(70),
+                  width: responsiveWidth(90),
+                }}>
+                <FlashList
+                  keyExtractor={item => item._id.toString()}
+                  estimatedItemSize={120}
+                  data={nearByJobDetails?.nearBy}
+                  renderItem={({item}) => (
+                    <TouchableWithoutFeedback
+                      onPress={() => setSelectedItemHandler(item)}>
+                      <Cards data={item} user={user} />
+                    </TouchableWithoutFeedback>
+                  )}
+                  contentContainerStyle={{
+                    paddingBottom: responsiveHeight(50),
+                    paddingTop: responsiveHeight(1),
+                  }}
+                  ListEmptyComponent={() => (
+                    <View style={{paddingBottom: responsiveHeight(25)}}>
+                      <Text
+                        className="text-red-500"
+                        style={{
+                          fontFamily: 'Montserrat-Bold',
+                          fontSize: responsiveFontSize(1.75),
+                        }}>
+                        No near by jobs available
+                      </Text>
+                    </View>
+                  )}
+                  ListFooterComponent={
+                    <View style={{height: 50, backgroundColor: 'white'}} />
+                  }
+                  showsVerticalScrollIndicator={false}></FlashList>
+              </View>
             )}
 
             <BottomSheetModal
@@ -487,13 +534,11 @@ const Home = ({navigation, bottomNavigation}: profileProps) => {
               }}
               snapPoints={snapPoints}
               onChange={handleSheetChanges}>
-              {/* <View className="flex flex-1 items-center rounded-t-2xl"> */}
               <BottonSheetCardSeeker
                 bottomSheetModalRef={bottomSheetModalRef}
                 data={selectedData}
                 navigation={bottomNavigation}
               />
-              {/* </View> */}
             </BottomSheetModal>
           </View>
           {/* body end  */}

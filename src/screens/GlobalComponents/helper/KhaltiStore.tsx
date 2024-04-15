@@ -42,9 +42,14 @@ export const KhaltiStore = create(set => ({
       }
     }
   },
-  requestPayment: async (id: string) => {
+  updateKhaltiNumber: async (id: string, recieverNumber: string) => {
     try {
-      const response = await axios_auth.put(`/payment/requestPayment/${id}`);
+      const response = await axios_auth.put(
+        `/payment/updateKhalitNumber/${id}`,
+        {
+          recieverNumber,
+        },
+      );
       if (response.status == 200) {
         return response.data;
       }

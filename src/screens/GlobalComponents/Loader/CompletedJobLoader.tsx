@@ -53,7 +53,6 @@ const styles = StyleSheet.create({
   amountContainer: {
     paddingVertical: 8,
     paddingHorizontal: 16,
-    backgroundColor: '#FFC107',
     borderRadius: 4,
     marginRight: 16,
   },
@@ -90,7 +89,6 @@ const styles = StyleSheet.create({
   paymentInfo: {
     paddingVertical: 8,
     paddingHorizontal: 16,
-    backgroundColor: 'green',
     borderRadius: 4,
     marginBottom: 8,
   },

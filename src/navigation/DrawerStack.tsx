@@ -14,15 +14,16 @@ import ButtonNavigator from './ButtonNavigator';
 import MyProfile from '../screens/Job_seeker/MyProfile';
 import MyJobs from '../screens/Job_provider/MyJobs';
 import CompletedJobs from '../screens/Job_provider/CompletedJobs';
+import PhoneVerification from '../screens/Job_seeker/phone_verification/PhoneVerification';
 
 export type DrawerStackParamsList = {
   Home: undefined;
   My_Profile: undefined;
   My_Jobs: undefined;
   Review: undefined;
-  TopSeller: undefined;
-  Payment : undefined;
+  Payment: undefined;
   Milestone: undefined;
+  Phone_Verify: {id: string};
 };
 
 const Drawer = createDrawerNavigator();
@@ -72,7 +73,7 @@ const DrawerStack = () => {
       />
       <Drawer.Screen
         name="Payment"
-        component={CompletedJobs} 
+        component={CompletedJobs}
         options={{
           drawerIcon: ({color}) => (
             <MaterialIcons name="payment" size={22} color={color} />
@@ -97,13 +98,16 @@ const DrawerStack = () => {
           ),
         }}
       />
+      {/*  invisible  */}
       <Drawer.Screen
-        name="TopSeller"
-        component={TopSeller}
+        name="Phone_Verify"
+        component={PhoneVerification}
         options={{
-          drawerIcon: ({color}) => (
-            <FontAwesome name="buysellads" size={22} color={color} />
-          ),
+          drawerLabel: () => null,
+          drawerIcon: () => null,
+          drawerItemStyle: {
+            display: 'none',
+          },
         }}
       />
     </Drawer.Navigator>
