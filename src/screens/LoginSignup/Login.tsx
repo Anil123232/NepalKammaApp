@@ -7,7 +7,6 @@ import {
 } from 'react-native-responsive-dimensions';
 import {LoginSVG} from '../../components/SvgComponents';
 import {StackNavigationProp} from '@react-navigation/stack';
-import {RootStackParamsList} from '../../../App';
 import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
 import {Formik} from 'formik';
 import * as Yup from 'yup';
@@ -17,6 +16,9 @@ import {ErrorToast} from '../../components/ErrorToast';
 import {SuccessToast} from '../../components/SuccessToast';
 import {useUserContext} from '../../contexts/UserContext';
 import {useGlobalStore} from '../../global/store';
+import {RootStackParamsList} from '../../navigation/AppStack';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface LoginScreenProps {
   navigation: StackNavigationProp<RootStackParamsList>;
@@ -25,6 +27,7 @@ interface LoginScreenProps {
 interface LoginDetails {
   email: string;
   password: string;
+  fcm_token?: string;
 }
 
 interface LoginSignupStoreState {
@@ -46,6 +49,13 @@ const Login = ({navigation}: LoginScreenProps) => {
   //  state
   const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
 
+  // for eye
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+
+  const toggleShowPassword = () => {
+    setShowPassword(!showPassword);
+  };
+
   const removeHandler = async () => {
     await removeItem('onboarding');
   };
@@ -58,16 +68,20 @@ const Login = ({navigation}: LoginScreenProps) => {
   const loginHandlerFunction = async (values: LoginDetails) => {
     setIsLoggingIn(true);
     try {
-      const response = await (
-        LoginSignupStore.getState() as LoginSignupStoreState
-      ).loginUser(values);
+      const finalValues = {
+        email: values.email,
+        password: values.password,
+        fcm_token: await AsyncStorage.getItem('fcm_token'),
+      };
+      const response = await (LoginSignupStore.getState() as any).loginUser(
+        finalValues,
+      );
       setCurrentUser(response.token);
       setUser(response.user);
       SuccessToast(response.message);
-      response.user.role === 'job_seeker' && navigation.navigate('Job_Seeker');
+      response.user.role === 'job_seeker' && navigation.replace('Job_Seeker');
       response.user.role === 'job_provider' &&
-        navigation.navigate('Job_Provider');
-
+        navigation.replace('Job_Provider');
       // setting the token in async storage
       setToken('currentUser', response.token);
     } catch (error: any) {
@@ -154,16 +168,31 @@ const Login = ({navigation}: LoginScreenProps) => {
                     style={{fontFamily: 'Montserrat-Medium'}}>
                     Password
                   </Text>
-                  <TextInput
-                    className="bg-[#effff8] rounded-md text-black"
-                    placeholder="Enter your password"
-                    style={{fontFamily: 'Montserrat-SemiBold'}}
-                    placeholderTextColor="#bdbebf"
-                    onChangeText={handleChange('password')}
-                    onBlur={handleBlur('password')}
-                    value={values.password}
-                    secureTextEntry
-                  />
+                  <View className="w-[100%] flex flex-row items-center">
+                    <TextInput
+                      className="bg-[#effff8] rounded-md text-black"
+                      placeholder="Enter your password"
+                      style={{fontFamily: 'Montserrat-SemiBold', flex: 1}}
+                      placeholderTextColor="#bdbebf"
+                      onChangeText={handleChange('password')}
+                      onBlur={handleBlur('password')}
+                      value={values.password}
+                      secureTextEntry={!showPassword}
+                    />
+                    <TouchableOpacity
+                      className="bg-[#effff8] py-3"
+                      onPress={toggleShowPassword}>
+                      <Ionicons
+                        name={showPassword ? 'eye-off' : 'eye'}
+                        size={24}
+                        color="#bdbdbd"
+                        style={{
+                          marginLeft: 10,
+                          marginRight: responsiveWidth(5),
+                        }}
+                      />
+                    </TouchableOpacity>
+                  </View>
                   {errors.password && (
                     <Text
                       className="text-red-500"
@@ -173,17 +202,20 @@ const Login = ({navigation}: LoginScreenProps) => {
                   )}
                 </View>
               </View>
-              <View className="flex flex-row items-center justify-between">
-                <Text className="text-black text-xs"></Text>
-                <Text
-                  className="text-black"
-                  style={{
-                    fontSize: responsiveFontSize(1.9),
-                    fontFamily: 'Montserrat-SemiBold',
-                  }}>
-                  Forget Password?
-                </Text>
-              </View>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('forget_password')}>
+                <View className="flex flex-row items-center justify-between">
+                  <Text className="text-black text-xs"></Text>
+                  <Text
+                    className="text-black"
+                    style={{
+                      fontSize: responsiveFontSize(1.9),
+                      fontFamily: 'Montserrat-SemiBold',
+                    }}>
+                    Forget Password?
+                  </Text>
+                </View>
+              </TouchableOpacity>
               <View>
                 <View className="w-[100%] bg-color2 flex items-center justify-center rounded-md">
                   <TouchableOpacity onPress={() => handleSubmit()}>
@@ -227,10 +259,10 @@ const Login = ({navigation}: LoginScreenProps) => {
                   </Text>
                 </TouchableOpacity>
               </View>
-              <TouchableOpacity onPress={removeHandler}>
-                <Text className="text-green-300">
-                  Remove local storage item
-                </Text>
+              <TouchableOpacity
+                onPress={removeHandler}
+                style={{marginTop: responsiveHeight(4)}}>
+                <Text className="text-green-300">r</Text>
               </TouchableOpacity>
             </View>
           </View>

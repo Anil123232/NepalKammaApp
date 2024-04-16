@@ -1,12 +1,17 @@
 import {create} from 'zustand';
 import {axios_auth} from './config';
 
-export const useGlobalStore = create(set => ({
+interface GlobalStoreState {
+  user: any;
+  checkAuth: () => Promise<boolean>;
+  setUser: (user: any) => void;
+}
+
+export const useGlobalStore = create<GlobalStoreState>(set => ({
   user: null,
   checkAuth: async () => {
     try {
       const res = await axios_auth.get('auth/check-auth');
-      console.log('this is response', res);
       if (res.data?.status === 'success') {
         set(() => ({user: res?.data?.user}));
         return true;

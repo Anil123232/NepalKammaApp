@@ -8,11 +8,11 @@ import {
 import OTPTextView from 'react-native-otp-textinput';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import {StackNavigationProp} from '@react-navigation/stack';
-import {RootStackParamsList} from '../../../App';
 import {RouteProp} from '@react-navigation/native';
 import {ErrorToast} from '../../components/ErrorToast';
 import {LoginSignupStore} from './helper/LoginSignupStore';
 import ModalBox from '../../components/ModalBox';
+import {RootStackParamsList} from '../../navigation/AppStack';
 
 interface OtpScreenProps {
   navigation?: StackNavigationProp<RootStackParamsList>;
@@ -66,7 +66,6 @@ const OtpScreen = ({navigation, route}: OtpScreenProps) => {
     setIsVerifying(true);
     try {
       if (otp.length === 4 && id) {
-        console.log(id, otp.length);
         const data = {
           userId: id,
           otp: otp,

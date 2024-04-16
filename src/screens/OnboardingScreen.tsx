@@ -5,9 +5,9 @@ import {
   responsiveHeight,
   responsiveWidth,
 } from 'react-native-responsive-dimensions';
-import {RootStackParamsList} from '../../App';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {getItem, setItem} from '../utils/asyncStorage';
+import {RootStackParamsList} from '../navigation/AppStack';
 
 interface OnBoardingScreenProps {
   navigation: StackNavigationProp<RootStackParamsList, 'Onboarding'>;
