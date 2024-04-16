@@ -18,6 +18,7 @@ import {useGlobalStore} from '../../../global/store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useSocket} from '../../../contexts/SocketContext';
 import FastImage from 'react-native-fast-image';
+import {UserStore} from '../helper/UserStore';
 
 type userStateProps = {
   __v: number;
@@ -36,17 +37,24 @@ const CustomDrawerSeeker = (props: DrawerContentComponentProps) => {
   const {navigation} = props;
   const socket = useSocket();
   const user: userStateProps = useGlobalStore((state: any) => state.user);
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
 
   const handleLogoutFunction = async () => {
-    await AsyncStorage.removeItem('currentUser');
-    useGlobalStore.setState({user: null});
+    setIsLoggingOut(true);
+    const res = await (UserStore.getState() as any).logOut();
+    if (res) {
+      await AsyncStorage.removeItem('currentUser');
+      await AsyncStorage.removeItem('fcm_token');
+      useGlobalStore.setState({user: null});
 
-    await socket?.emit('removeUser', socket.id);
+      await socket?.emit('removeUser', socket.id);
 
-    navigation.reset({
-      index: 0,
-      routes: [{name: 'Login'}],
-    });
+      navigation.reset({
+        index: 0,
+        routes: [{name: 'Login'}],
+      });
+    }
+    setIsLoggingOut(false);
   };
 
   React.useEffect(() => {
@@ -120,23 +128,42 @@ const CustomDrawerSeeker = (props: DrawerContentComponentProps) => {
             </Text>
           </View>
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={handleLogoutFunction}
-          style={{paddingVertical: 15}}
-          className="bg-color2 rounded-lg">
-          <View className="flex flex-row items-center justify-center">
-            <Ionicons name="exit-outline" size={25} color="white" />
-            <Text
-              style={{
-                fontSize: 15,
-                fontFamily: 'Montserrat-SemiBold',
-                marginLeft: 5,
-              }}
-              className="text-white">
-              Sign Out
-            </Text>
-          </View>
-        </TouchableOpacity>
+        {isLoggingOut ? (
+          <TouchableOpacity
+            style={{paddingVertical: 15}}
+            className="bg-color2 rounded-lg">
+            <View className="flex flex-row items-center justify-center">
+              <Ionicons name="exit-outline" size={25} color="white" />
+              <Text
+                style={{
+                  fontSize: 15,
+                  fontFamily: 'Montserrat-SemiBold',
+                  marginLeft: 5,
+                }}
+                className="text-white">
+                Signing Out...
+              </Text>
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            onPress={handleLogoutFunction}
+            style={{paddingVertical: 15}}
+            className="bg-color2 rounded-lg">
+            <View className="flex flex-row items-center justify-center">
+              <Ionicons name="exit-outline" size={25} color="white" />
+              <Text
+                style={{
+                  fontSize: 15,
+                  fontFamily: 'Montserrat-SemiBold',
+                  marginLeft: 5,
+                }}
+                className="text-white">
+                Sign Out
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );

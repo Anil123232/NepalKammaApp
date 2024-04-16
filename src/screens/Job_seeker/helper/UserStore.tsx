@@ -126,4 +126,16 @@ export const UserStore = create(set => ({
       }
     }
   },
+  logOut: async () => {
+    try {
+      await axios_auth.get(`/user/logout`);
+      return true;
+    } catch (error: any) {
+      if (error.response) {
+        throw new Error(error.response.data.message);
+      } else {
+        throw new Error(error.message);
+      }
+    }
+  },
 }));
